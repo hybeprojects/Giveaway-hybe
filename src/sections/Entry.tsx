@@ -124,6 +124,7 @@ export default function Entry() {
                       auth.saveLocalSession(session);
                     }
                     setBase(1);
+                    try { await fetch('/.netlify/functions/activity-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
                     alert('Verified and entered. Welcome!');
                   } catch (e: any) {
                     alert(e?.message || 'Invalid or expired code');
