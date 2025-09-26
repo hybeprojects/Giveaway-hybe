@@ -24,7 +24,7 @@ export default function Dashboard() {
     })();
   }, []);
 
-  const withdraw = () => {
+  const withdraw = async () => {
     const amount = prompt('Enter amount to withdraw (available: ' + bal.available.toFixed(2) + '):');
     if (!amount) return;
     const n = Number(amount);
