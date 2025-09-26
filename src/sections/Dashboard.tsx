@@ -63,7 +63,10 @@ export default function Dashboard() {
               <h2 className="section-title" style={{ margin: 0 }}>Your Giveaway Dashboard</h2>
               <p className="subtle">Signed in as {email}</p>
             </div>
-            <button className="button-secondary" onClick={() => signOut().then(() => window.location.href = '/')}>
+            <button className="button-secondary" onClick={() => {
+              if (isSupabaseConfigured()) signOut(); else clearLocalSession();
+              window.location.href = '/';
+            }}>
               Sign out
             </button>
           </div>
