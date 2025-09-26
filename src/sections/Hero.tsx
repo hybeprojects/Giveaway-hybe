@@ -7,13 +7,13 @@ export default function Hero() {
   target.setDate(target.getDate() + 10);
   return (
     <section className="hero" aria-label="Hero">
-      <video autoPlay muted loop playsInline preload="auto" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+      <video className="hero-video" autoPlay muted loop playsInline preload="auto">
         <source src={VIDEO_URL} type="video/mp4" />
       </video>
       <div className="hero-overlay"></div>
       <div className="hero-content container">
-        <h1 className="h1" style={{ fontSize: '56px', lineHeight: 1.05, margin: 0 }}>Win a Tesla Model 3, $700,000 in Crypto & VIP HYBE Experience!</h1>
-        <p className="subtle" style={{ marginTop: 10 }}>Entries close in:</p>
+        <h1 className="h1 hero-title">Win a Tesla Model 3, $700,000 in Crypto & VIP HYBE Experience!</h1>
+        <p className="subtle mt-10">Entries close in:</p>
         <Countdown target={target} />
         <div className="cta-row">
           <a className="button-primary" href="#enter">Enter Now</a>
