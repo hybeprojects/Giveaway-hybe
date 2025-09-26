@@ -2,6 +2,12 @@ import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 
 let client: SupabaseClient | null = null;
 
+export function isSupabaseConfigured() {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  return Boolean(url && key);
+}
+
 export function getSupabase(): SupabaseClient | null {
   if (client) return client;
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;

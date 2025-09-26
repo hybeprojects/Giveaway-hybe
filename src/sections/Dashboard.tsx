@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getSession, signOut } from '../utils/supabaseClient';
+import { getSession, signOut, isSupabaseConfigured } from '../utils/supabaseClient';
 import { balances, getLedger, addDebit } from '../utils/balance';
+import { getLocalSession, clearLocalSession } from '../utils/auth';
 
 export default function Dashboard() {
   const [email, setEmail] = useState<string>('');
@@ -10,9 +11,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSession();
-      if (!s) { window.location.href = '/login'; return; }
-      setEmail(s.user.email || '');
+      if (isSupabaseConfigured()) {
+        const s = await getSession();
+        if (!s) { window.location.href = '/login'; return; }
+        setEmail(s.user.email || '');
+      } else {
+        const s = getLocalSession();
+        if (!s) { window.location.href = '/login'; return; }
+        setEmail(s.email);
+      }
       setLoading(false);
     })();
   }, []);

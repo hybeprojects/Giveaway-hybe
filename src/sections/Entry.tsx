@@ -28,8 +28,15 @@ export default function Entry() {
     if (!validateEmail(email)) return alert('Enter a valid email');
     setLoading(true);
     try {
-      const mod = await import('../utils/supabaseClient');
-      await mod.sendEmailOtp(email);
+      const supa = await import('../utils/supabaseClient');
+      if (supa.isSupabaseConfigured()) {
+        await supa.sendEmailOtp(email);
+        (window as any).__otpToken = undefined;
+      } else {
+        const auth = await import('../utils/auth');
+        const token = await auth.requestOtp(email);
+        (window as any).__otpToken = token;
+      }
       setSent(true);
       alert('We sent a 6-digit code to your email.');
     } catch (err: any) {
@@ -106,8 +113,16 @@ export default function Entry() {
                   if (code.length !== 6) return alert('Enter the 6‑digit code');
                   setLoading(true);
                   try {
-                    const mod = await import('../utils/supabaseClient');
-                    await mod.verifyEmailOtp(email, code);
+                    const supa = await import('../utils/supabaseClient');
+                    if (supa.isSupabaseConfigured()) {
+                      await supa.verifyEmailOtp(email, code);
+                    } else {
+                      const auth = await import('../utils/auth');
+                      const token = (window as any).__otpToken as string | undefined;
+                      if (!token) throw new Error('Missing verification token. Resend code.');
+                      const session = await auth.verifyOtp(email, code, token);
+                      auth.saveLocalSession(session);
+                    }
                     setBase(1);
                     alert('Verified and entered. Welcome!');
                   } catch (e: any) {

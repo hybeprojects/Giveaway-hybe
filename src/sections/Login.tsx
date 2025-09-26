@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getSession, sendEmailOtp, verifyEmailOtp } from '../utils/supabaseClient';
+import { getSession, sendEmailOtp, verifyEmailOtp, isSupabaseConfigured } from '../utils/supabaseClient';
+import { requestOtp, verifyOtp as verifyOtpFn, saveLocalSession } from '../utils/auth';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
@@ -17,7 +18,13 @@ export default function Login() {
     if (!validateEmail(email)) { setError('Enter a valid email'); return; }
     setLoading(true);
     try {
-      await sendEmailOtp(email);
+      if (isSupabaseConfigured()) {
+        await sendEmailOtp(email);
+        (window as any).__otpToken = undefined;
+      } else {
+        const token = await requestOtp(email);
+        (window as any).__otpToken = token;
+      }
       setSent(true);
     } catch (e: any) {
       setError(e.message || 'Failed to send code');
@@ -29,7 +36,14 @@ export default function Login() {
     if (code.trim().length !== 6 || !/^\d{6}$/.test(code)) { setError('Enter the 6-digit code'); return; }
     setLoading(true);
     try {
-      await verifyEmailOtp(email, code.trim());
+      if (isSupabaseConfigured()) {
+        await verifyEmailOtp(email, code.trim());
+      } else {
+        const token = (window as any).__otpToken as string | undefined;
+        if (!token) throw new Error('Missing verification token. Resend code.');
+        const session = await verifyOtpFn(email, code.trim(), token);
+        saveLocalSession(session);
+      }
       window.location.href = '/dashboard';
     } catch (e: any) {
       setError(e.message || 'Invalid or expired code');
