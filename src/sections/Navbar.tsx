@@ -17,6 +17,7 @@ export default function Navbar() {
           <button className="nav-link" onClick={() => go('vip')}>VIP</button>
           <button className="nav-link" onClick={() => go('enter')}>Enter</button>
           <button className="nav-link" onClick={() => go('updates')}>Updates</button>
+          <a className="nav-link" href="/dashboard">Dashboard</a>
           <DarkModeToggle />
         </nav>
       </div>
