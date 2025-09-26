@@ -11,6 +11,9 @@ export default function Entry() {
   const [base, setBase] = useState(getNumber('base', 0));
   const [share, setShare] = useState(getNumber('share', 0));
   const [invite, setInvite] = useState(getNumber('invite', 0));
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
 
   useEffect(() => { setString('name', name); }, [name]);
