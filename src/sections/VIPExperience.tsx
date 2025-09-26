@@ -14,22 +14,22 @@ export default function VIPExperience() {
     <section id="vip" className="section" aria-label="VIP Experience">
       <div className="container">
         <h2 className="section-title">VIP Experience</h2>
-        <div className="grid" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
-          <div className="grid" style={{ alignContent: 'start' }}>
-            <div className="scroll-reveal card" style={{ padding: 16 }}>
+        <div className="two-col-grid">
+          <div className="grid content-start">
+            <div className="scroll-reveal card card-pad">
               ✈ A private jet takes you to your destination in comfort.
             </div>
-            <div className="scroll-reveal card" style={{ padding: 16 }}>
+            <div className="scroll-reveal card card-pad">
               🏨 A luminous 5-star hotel stay with concierge service.
             </div>
-            <div className="scroll-reveal card" style={{ padding: 16 }}>
+            <div className="scroll-reveal card card-pad">
               🍽 A curated fine-dining experience by top chefs.
             </div>
-            <div className="scroll-reveal card" style={{ padding: 16 }}>
+            <div className="scroll-reveal card card-pad">
               🎁 Exclusive swag and backstage access to HYBE experiences.
             </div>
           </div>
-          <div className="scroll-reveal card" style={{ overflow: 'hidden' }}>
+          <div className="scroll-reveal card overflow-hidden">
             <img src={DINING_IMG} alt="Fine dining" />
           </div>
         </div>
