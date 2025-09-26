@@ -23,13 +23,18 @@ export default function Entry() {
   useEffect(() => { setNumber('share', share); }, [share]);
   useEffect(() => { setNumber('invite', invite); }, [invite]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return alert('Name is required');
     if (!validateEmail(email)) return alert('Enter a valid email');
-    if (!country) return alert('Select a country');
-    setBase(1);
-    alert('Entry submitted. Boost your odds with shares and invites!');
+    setLoading(true);
+    try {
+      const mod = await import('../utils/supabaseClient');
+      await mod.sendEmailOtp(email);
+      setSent(true);
+      alert('We sent a 6-digit code to your email.');
+    } catch (err: any) {
+      alert(err?.message || 'Could not send code.');
+    } finally { setLoading(false); }
   };
 
   const shareNow = async () => {
