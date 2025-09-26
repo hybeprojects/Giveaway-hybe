@@ -27,16 +27,16 @@ export default function LiveUpdates() {
 
   return (
     <section id="updates" className="section" aria-label="Live Updates">
-      <div className="container grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-        <div className="card" style={{ padding: 16 }}>
+      <div className="container two-col-grid">
+        <div className="card card-pad">
           <h3>Live Entries Count</h3>
-          <div className="h1" style={{ marginTop: 6 }}>{entries.toLocaleString()}</div>
+          <div className="h1 mt-6">{entries.toLocaleString()}</div>
         </div>
-        <div className="card" style={{ padding: 16 }}>
+        <div className="card card-pad">
           <h3>Winners Announced Live on Stream</h3>
           <Countdown target={winnersAt} />
         </div>
-        <div className="card" style={{ gridColumn: '1 / -1', padding: 16 }}>
+        <div className="card card-pad span-all">
           <h3>Recent Activity</h3>
           <ul>
             {feed.map((f, i) => <li key={i} className="subtle">{f}</li>)}
