@@ -17,11 +17,7 @@ const app = express();
 const databaseUrl = process.env.DATABASE_URL || '';
 let pool = null;
 if (databaseUrl) {
-  let sslConfig = undefined;
-  if (process.env.DB_SSL === 'true') sslConfig = { rejectUnauthorized: false };
-  else if (process.env.DB_SSL === 'false') sslConfig = undefined;
-  else if (/sslmode=require/.test(databaseUrl)) sslConfig = { rejectUnauthorized: false };
-  else if (process.env.NODE_ENV === 'production') sslConfig = { rejectUnauthorized: false };
+
   pool = new Pool({ connectionString: databaseUrl, ssl: sslConfig });
   (async () => {
     try {
