@@ -41,8 +41,8 @@ export async function requestOtp(email: string): Promise<string> {
 
   let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
 
-  if (!res || !res.ok) {
-    // attempt fallback to local functions path
+  // Only try fallback on network error, not on HTTP error like 429
+  if (!res) {
     res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
   }
 
@@ -59,7 +59,8 @@ export async function verifyOtp(email: string, code: string, token: string): Pro
 
   let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
 
-  if (!res || !res.ok) {
+  // Only try fallback on network error, not on HTTP error like 429
+  if (!res) {
     res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
   }
 
