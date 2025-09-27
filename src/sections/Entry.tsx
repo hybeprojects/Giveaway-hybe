@@ -165,7 +165,7 @@ export default function Entry() {
                       } catch {}
                     }
                     setBase(1);
-                    try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
+                    try { const { apiBase } = await import('../utils/auth'); const session = localStorage.getItem('local_session') || ''; await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
                     toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
