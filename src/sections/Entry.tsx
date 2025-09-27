@@ -48,13 +48,14 @@ export default function Entry() {
     setLoading(true);
     try {
       const supa = await import('../utils/supabaseClient');
-      if (supa.isSupabaseConfigured()) {
-        await supa.sendEmailOtp(email);
-        (window as any).__otpToken = undefined;
-      } else {
+      const useCustom = Boolean((import.meta as any).env?.VITE_API_BASE);
+      if (useCustom || !supa.isSupabaseConfigured()) {
         const auth = await import('../utils/auth');
         const token = await auth.requestOtp(email);
         (window as any).__otpToken = token;
+      } else {
+        await supa.sendEmailOtp(email);
+        (window as any).__otpToken = undefined;
       }
       setSent(true);
       setMessage('We sent a 6‑digit code to your email.');
@@ -149,7 +150,7 @@ export default function Entry() {
                   setLoading(true);
                   try {
                     const supa = await import('../utils/supabaseClient');
-                    if (supa.isSupabaseConfigured()) {
+                    if (supa.isSupabaseConfigured() && !(import.meta as any).env?.VITE_API_BASE) {
                       await supa.verifyEmailOtp(email, code);
                       const client = supa.getSupabase();
                       if (client) {
@@ -162,6 +163,11 @@ export default function Entry() {
                       if (!token) throw new Error('Missing verification token. Resend code.');
                       const session = await auth.verifyOtp(email, code, token);
                       auth.saveLocalSession(session);
+                      try {
+                        const { apiBase } = await import('../utils/auth');
+                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                      } catch {}
                     }
                     setBase(1);
                     try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}

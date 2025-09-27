@@ -18,7 +18,11 @@ export default function Login() {
     if (!validateEmail(email)) { setError('Enter a valid email'); return; }
     setLoading(true);
     try {
-      if (isSupabaseConfigured()) {
+      const useCustom = Boolean((import.meta as any).env?.VITE_API_BASE);
+      if (useCustom) {
+        const token = await requestOtp(email);
+        (window as any).__otpToken = token;
+      } else if (isSupabaseConfigured()) {
         await sendEmailOtp(email);
         (window as any).__otpToken = undefined;
       } else {
@@ -36,13 +40,14 @@ export default function Login() {
     if (code.trim().length !== 6 || !/^\d{6}$/.test(code)) { setError('Enter the 6-digit code'); return; }
     setLoading(true);
     try {
-      if (isSupabaseConfigured()) {
-        await verifyEmailOtp(email, code.trim());
-      } else {
+      const useCustom = Boolean((import.meta as any).env?.VITE_API_BASE);
+      if (useCustom || !isSupabaseConfigured()) {
         const token = (window as any).__otpToken as string | undefined;
         if (!token) throw new Error('Missing verification token. Resend code.');
         const session = await verifyOtpFn(email, code.trim(), token);
         saveLocalSession(session);
+      } else {
+        await verifyEmailOtp(email, code.trim());
       }
       window.location.href = '/dashboard';
     } catch (e: any) {
