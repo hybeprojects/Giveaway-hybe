@@ -12,5 +12,6 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Poppi
 .subtle { color: var(--muted); }
 .card { background: var(--surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
 .sticky-nav { position: sticky; top: 0; z-index: 40; backdrop-filter: saturate(180%) blur(10px); background: rgba(0,0,0,0.6); border-bottom: 1px solid rgba(255,255,255,0.08); }
+html[data-theme="light"] .sticky-nav { background: rgba(255,255,255,0.6); border-bottom-color: rgba(0,0,0,0.08); }
 .grid { display: grid; gap: 20px; }
 @media (max-width: 900px) { .section { padding: 56px 0; } .section-title { font-size: 32px; } }
