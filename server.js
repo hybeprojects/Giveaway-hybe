@@ -153,7 +153,7 @@ app.post('/send-otp', async (req, res) => {
     const from = process.env.FROM_EMAIL || user;
     if (!host || !user || !pass) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
-    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
     const html = `
       <div style="font-family:Arial,sans-serif;">
         <h2>HYBE Giveaway verification code</h2>
@@ -275,7 +275,7 @@ app.post('/activity-email', async (req, res) => {
     const from = process.env.FROM_EMAIL || user;
     if (!host || !user || !pass) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
-    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
     const html = `<div style=\"font-family:Arial,sans-serif;\"><h2>${subject}</h2><p>${(detail || '').toString()}</p></div>`;
     await transport.sendMail({ from, to: email, subject, text: (detail || '').toString(), html });
 
