@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Countdown from '../components/Countdown';
-import { isSupabaseConfigured, getSupabase } from '../utils/supabaseClient';
+import { apiBase } from '../utils/auth';
 
 function useAnimatedCount(start: number) {
   const [n, setN] = useState(start);
@@ -26,29 +26,33 @@ export default function LiveUpdates() {
   const [feed, setFeed] = useState<{ text: string; created_at: string }[] | null>(null);
 
   useEffect(() => {
-    let unsub: (() => void) | null = null;
-    (async () => {
-      if (isSupabaseConfigured()) {
-        const supa = getSupabase();
-        if (supa) {
-          const { data } = await supa.from('events').select('text, created_at').order('created_at', { ascending: false }).limit(10);
-          if (data) setFeed(data as any);
-          const channel = supa.channel('events-feed').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (payload) => {
-            const row = payload.new as any;
-            setFeed((f) => [{ text: row.text, created_at: row.created_at || new Date().toISOString() }, ...(f || [])].slice(0, 10));
-          }).subscribe();
-          unsub = () => { supa.removeChannel(channel); };
+    let active = true;
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch(`${apiBase}/events`);
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setFeed(data);
+        } else if (active && feed === null) {
+          setFeed([
+            { text: 'A. Kim boosted odds', created_at: new Date().toISOString() },
+            { text: 'J. Park entered', created_at: new Date().toISOString() },
+            { text: 'S. Lee invited 3 friends', created_at: new Date().toISOString() }
+          ]);
+        }
+      } catch {
+        if (active && feed === null) {
+          setFeed([
+            { text: 'A. Kim boosted odds', created_at: new Date().toISOString() },
+            { text: 'J. Park entered', created_at: new Date().toISOString() },
+            { text: 'S. Lee invited 3 friends', created_at: new Date().toISOString() }
+          ]);
         }
       }
-      if (!isSupabaseConfigured()) {
-        setFeed([
-          { text: 'A. Kim boosted odds', created_at: new Date().toISOString() },
-          { text: 'J. Park entered', created_at: new Date().toISOString() },
-          { text: 'S. Lee invited 3 friends', created_at: new Date().toISOString() }
-        ]);
-      }
-    })();
-    return () => { if (unsub) unsub(); };
+    };
+    fetchEvents();
+    const id = setInterval(fetchEvents, 10000);
+    return () => { active = false; clearInterval(id); };
   }, []);
 
   return (

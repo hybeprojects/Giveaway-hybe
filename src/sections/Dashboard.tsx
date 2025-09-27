@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getSession, signOut, isSupabaseConfigured } from '../utils/supabaseClient';
 import { balances, getLedger, addDebit } from '../utils/balance';
 import { getLocalSession, clearLocalSession } from '../utils/auth';
 import { useToast } from '../components/Toast';
@@ -12,18 +11,10 @@ export default function Dashboard() {
   const toast = useToast();
 
   useEffect(() => {
-    (async () => {
-      if (isSupabaseConfigured()) {
-        const s = await getSession();
-        if (!s) { window.location.href = '/login'; return; }
-        setEmail(s.user.email || '');
-      } else {
-        const s = getLocalSession();
-        if (!s) { window.location.href = '/login'; return; }
-        setEmail(s.email);
-      }
-      setLoading(false);
-    })();
+    const s = getLocalSession();
+    if (!s) { window.location.href = '/login'; return; }
+    setEmail(s.email);
+    setLoading(false);
   }, []);
 
   const withdraw = async () => {
@@ -67,7 +58,7 @@ export default function Dashboard() {
               <p className="subtle">Signed in as {email}</p>
             </div>
             <button className="button-secondary" onClick={() => {
-              if (isSupabaseConfigured()) signOut(); else clearLocalSession();
+              clearLocalSession();
               window.location.href = '/';
             }}>
               Sign out
