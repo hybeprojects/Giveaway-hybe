@@ -1,7 +1,8 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
-export const apiBase: string = (import.meta as any).env?.VITE_API_BASE || '/.netlify/functions';
+const rawApiBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+export const apiBase: string = rawApiBase ? rawApiBase.replace(/\/$/, '') : '';
 
 async function tryFetch(url: string, opts: RequestInit) {
   try {
