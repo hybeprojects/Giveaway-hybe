@@ -17,7 +17,7 @@ export default function Login() {
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
     try {
-      const token = await requestOtp(email);
+      const token = await requestOtp(email, 'login');
       (window as any).__otpToken = token;
       setSent(true);
     } catch (e: any) {

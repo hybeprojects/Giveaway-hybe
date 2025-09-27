@@ -47,7 +47,7 @@ export default function Entry() {
     setLoading(true);
     try {
       const auth = await import('../utils/auth');
-      const token = await auth.requestOtp(email);
+      const token = await auth.requestOtp(email, 'signup');
       (window as any).__otpToken = token;
       setSent(true);
       toast.info('We sent a 6‑digit code to your email.');
