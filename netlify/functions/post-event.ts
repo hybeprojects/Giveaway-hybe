@@ -12,7 +12,7 @@ function authorize(event: any): { ok: true; email?: string } | { ok: false } {
     if (!secret) return { ok: false };
     try {
       const payload = jwt.verify(token, secret) as { email?: string };
-      if (payload && payload.email) return { ok: true, email: payload.email };
+      if (payload) return { ok: true, email: payload.email };
     } catch {}
   }
   const headerToken = event.headers['x-admin-token'];
@@ -31,17 +31,13 @@ export const handler: Handler = async (event) => {
     if (!auth.ok) return json(401, { ok: false, error: 'Unauthorized' });
 
     const body = JSON.parse(event.body || '{}');
-    const { email, name, country, base = 1, share = 0, invite = 0 } = body || {};
-    if (!email || !name || !country) return json(400, { ok: false, error: 'Missing required fields' });
+    const { type, text, meta } = body || {};
+    if (!type || !text) return json(400, { ok: false, error: 'Missing required fields' });
 
-    if (auth.email && auth.email !== email) return json(403, { ok: false, error: 'Email mismatch' });
-
-    const total = Number(base) + Number(share) + Number(invite);
-
-    const res = await fetch(`${supabaseUrl}/rest/v1/entries`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/events`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify([{ email, name, country, base, share, invite, total }])
+      headers: { 'Content-Type': 'application/json', 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` },
+      body: JSON.stringify([{ type, text, meta }])
     });
 
     if (!res.ok) {

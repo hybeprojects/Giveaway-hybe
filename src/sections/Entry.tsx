@@ -159,12 +159,13 @@ export default function Entry() {
                       auth.saveLocalSession(session);
                       try {
                         const { apiBase } = await import('../utils/auth');
-                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
-                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                        const session = localStorage.getItem('local_session') || '';
+                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
                       } catch {}
                     }
                     setBase(1);
-                    try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
+                    try { const { apiBase } = await import('../utils/auth'); const session = localStorage.getItem('local_session') || ''; await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
                     toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
