@@ -50,6 +50,19 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Optional duplicate email check (if Supabase env present)
+    try {
+      const supabaseUrlEnv = process.env.SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrlEnv && serviceKey) {
+        const r = await fetch(`${supabaseUrlEnv}/rest/v1/entries?email=eq.${encodeURIComponent(email)}&select=email`, { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } });
+        if (r.ok) {
+          const arr = await r.json() as any[];
+          if (arr && arr.length > 0) return json(409, { ok: false, error: 'This email is already registered.' });
+        }
+      }
+    } catch {}
+
     const code = (Math.floor(100000 + Math.random() * 900000)).toString();
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
     const token = jwt.sign({ email, codeHash }, secret, { expiresIn: OTP_EXP_SECONDS });
