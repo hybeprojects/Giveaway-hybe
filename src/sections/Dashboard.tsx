@@ -63,7 +63,7 @@ export default function Dashboard() {
         <div className="card card-pad mb-16">
           <div className="row-between">
             <div>
-              <h2 className="section-title" style={{ margin: 0 }}>Your Giveaway Dashboard</h2>
+              <h2 className="section-title m-0">Your Giveaway Dashboard</h2>
               <p className="subtle">Signed in as {email}</p>
             </div>
             <button className="button-secondary" onClick={() => {
