@@ -16,7 +16,7 @@ export default function Trust() {
               </svg>
               <strong>Verified by HYBE Corp</strong>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <div className="row mt-10">
               <span className="nav-link" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>SSL Secure</span>
               <span className="nav-link" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>Fair Draw</span>
               <span className="nav-link" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>Privacy First</span>
