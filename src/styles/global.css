@@ -98,3 +98,28 @@ img, video { display: block; max-width: 100%; height: auto; }
 
 /* Skeleton utility */
 .skeleton-line { display: inline-block; width: 60%; height: 12px; border-radius: 6px; }
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0 0 0 / 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0 0 0 / 0.2);
+  border: 1px solid var(--border-color);
+}

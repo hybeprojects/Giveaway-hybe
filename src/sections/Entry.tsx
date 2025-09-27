@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import { getNumber, setNumber, getString, setString } from '../utils/storage';
 import { useToast } from '../components/Toast';
+import InviteModal from '../components/InviteModal';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
@@ -30,6 +31,7 @@ export default function Entry() {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const toast = useToast();
   const lastMilestone = useRef<number>(0);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
@@ -74,11 +76,12 @@ export default function Entry() {
     } catch {}
   };
 
-  const inviteFriend = async () => {
-    const friend = prompt('Enter your friend\'s email to send an invite:');
-    if (friend && validateEmail(friend)) {
+  const handleInvite = (friendEmail: string) => {
+    if (friendEmail && validateEmail(friendEmail)) {
       setInvite(v => v + 5);
       toast.success('Invite sent! +5 entries');
+    } else {
+      toast.error('Please enter a valid email address.');
     }
   };
 
@@ -181,7 +184,7 @@ export default function Entry() {
             <p className="subtle">Share on social = +3 entries • Invite a friend = +5 entries</p>
             <div className="button-row">
               <button type="button" className="button-secondary" onClick={shareNow}>Share Now</button>
-              <button type="button" className="button-secondary" onClick={inviteFriend}>Invite a Friend</button>
+              <button type="button" className="button-secondary" onClick={() => setInviteModalOpen(true)}>Invite a Friend</button>
             </div>
             <div className="mt-10">
               <ProgressBar value={total} max={20} />
@@ -190,6 +193,11 @@ export default function Entry() {
           </div>
         </form>
       </div>
+      <InviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onInvite={handleInvite}
+      />
     </section>
   );
 }
