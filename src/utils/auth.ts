@@ -1,7 +1,7 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
-const base = '/.netlify/functions';
+const base = (import.meta as any).env?.VITE_API_BASE || '/.netlify/functions';
 
 export async function requestOtp(email: string): Promise<string> {
   const res = await fetch(`${base}/send-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
