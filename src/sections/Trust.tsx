@@ -5,8 +5,8 @@ export default function Trust() {
     <section className="section" aria-label="Trust">
       <div className="container">
         <h2 className="section-title">Trust & Transparency</h2>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="card" style={{ padding: 16 }}>
+        <div className="two-col-grid">
+          <div className="card card-pad">
             <h3>Provable Fairness</h3>
             <p className="subtle">Our selection uses cryptographic commitments to ensure fairness, auditable by anyone.</p>
             <div style={{ display: 'flex', gap: 12, marginTop: 10, alignItems: 'center' }}>
