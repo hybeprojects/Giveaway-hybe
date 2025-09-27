@@ -256,6 +256,9 @@ app.post('/activity-email', async (req, res) => {
   }
 });
 
+// Health check
+app.get('/healthz', (req, res) => res.json({ ok: true }));
+
 // --- Static file hosting for SPA ---
 const distDir = path.join(__dirname, 'dist');
 app.use(express.static(distDir, { maxAge: '1h', extensions: ['html'] }));
