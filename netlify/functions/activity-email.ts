@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions';
 import nodemailer from 'nodemailer';
+import jwt from 'jsonwebtoken';
 
 function json(statusCode: number, body: unknown) { return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }; }
 
@@ -9,11 +10,28 @@ const subjects: Record<string, string> = {
   withdrawal: 'Your withdrawal request was received'
 };
 
+function authorize(event: any, claimedEmail: string | undefined): boolean {
+  const adminToken = process.env.ADMIN_TOKEN;
+  const authz = event.headers['authorization'] || event.headers['Authorization'];
+  if (authz && authz.startsWith('Bearer ')) {
+    const token = authz.slice('Bearer '.length);
+    const secret = process.env.OTP_JWT_SECRET;
+    if (!secret) return false;
+    try {
+      const payload = jwt.verify(token, secret) as { email?: string };
+      if (!claimedEmail || (payload && payload.email === claimedEmail)) return true;
+    } catch {}
+  }
+  const headerToken = event.headers['x-admin-token'];
+  return Boolean(adminToken && headerToken && headerToken === adminToken);
+}
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
   try {
     const { email, type, detail } = JSON.parse(event.body || '{}');
     if (!email || !/.+@.+\..+/.test(email)) return json(400, { ok: false, error: 'Invalid email' });
+    if (!authorize(event, email)) return json(401, { ok: false, error: 'Unauthorized' });
     const subject = subjects[type] || 'HYBE Giveaway update';
 
     const host = process.env.SMTP_HOST;
