@@ -159,8 +159,9 @@ export default function Entry() {
                       auth.saveLocalSession(session);
                       try {
                         const { apiBase } = await import('../utils/auth');
-                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
-                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                        const session = localStorage.getItem('local_session') || '';
+                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
                       } catch {}
                     }
                     setBase(1);
