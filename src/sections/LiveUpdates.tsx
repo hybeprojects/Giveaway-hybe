@@ -66,9 +66,9 @@ export default function LiveUpdates() {
           <h3>Recent Activity</h3>
           <ul>
             {feed === null && Array.from({ length: 5 }).map((_, i) => (
-              <li key={i} className="subtle"><span className="skeleton" style={{ display: 'inline-block', width: '60%', height: 12, borderRadius: 6 }} /></li>
+              <li key={i} className="subtle"><span className="skeleton skeleton-line" /></li>
             ))}
-            {feed && feed.map((f, i) => <li key={i} className="subtle">{f.text} <span style={{ opacity: 0.6 }}>· {timeAgo(f.created_at)}</span></li>)}
+            {feed && feed.map((f, i) => <li key={i} className="subtle">{f.text} <span className="dim">· {timeAgo(f.created_at)}</span></li>)}
           </ul>
         </div>
       </div>

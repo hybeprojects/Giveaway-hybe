@@ -8,7 +8,7 @@ export default function Navbar() {
   return (
     <header className="sticky-nav">
       <div className="container navbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="brand-row">
           <img src="/icons/icon.svg" width="28" height="28" alt="HYBE"/>
           <strong>HYBE Giveaway</strong>
         </div>

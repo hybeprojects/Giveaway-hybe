@@ -17,10 +17,14 @@ if ('serviceWorker' in navigator) {
 
 import { BrowserRouter } from 'react-router-dom';
 
+import { ToastProvider } from './components/Toast';
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

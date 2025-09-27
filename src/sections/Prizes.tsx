@@ -8,8 +8,8 @@ function PrizeCard({ src, title, detail, tier }: { src: string; title: string; d
     <article className="carousel-item card">
       <div className={`badge ${tier}`}>{tier === 'gold' ? '🥇 Grand' : tier === 'silver' ? '🥈 Second' : '🥉 Third'}</div>
       <img src={src} alt={title} />
-      <div style={{ padding: 16 }}>
-        <h3 style={{ margin: '4px 0 8px' }}>{title}</h3>
+      <div className="prize-card-body">
+        <h3 className="prize-title">{title}</h3>
         <p className="subtle">{detail}</p>
       </div>
     </article>
@@ -24,11 +24,11 @@ export default function Prizes() {
       <div className="container">
         <h2 className="section-title">Dynamic Prize Showcase</h2>
         <p className="subtle">Explore each prize and discover the details.</p>
-        <div className="button-row" style={{ justifyContent: 'flex-end', marginTop: 10 }}>
+        <div className="button-row justify-end mt-10">
           <button className="button-secondary" onClick={() => scroll(-400)}>◀</button>
           <button className="button-secondary" onClick={() => scroll(400)}>▶</button>
         </div>
-        <div ref={ref} className="carousel" style={{ marginTop: 14 }}>
+        <div ref={ref} className="carousel mt-14">
           <PrizeCard src={JET_IMG} title="Tesla Model 3" detail="Performance package with exclusive delivery experience." tier="gold" />
           <PrizeCard src={CRYPTO_IMG} title="$700,000 in Crypto" detail="Bitcoin and Ethereum split, transferred securely." tier="silver" />
           <PrizeCard src={CRYPTO_IMG} title="VIP HYBE Experience" detail="Private jet travel, 5-star hotel, fine dining, and exclusive access." tier="bronze" />

@@ -5,11 +5,11 @@ type Item = { q: string; a: string };
 function QA({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <button className="nav-link" onClick={() => setOpen(v => !v)} aria-expanded={open} style={{ display: 'block', width: '100%', textAlign: 'left' }}>
+    <div className="card card-pad">
+      <button className="nav-link full-width text-start" onClick={() => setOpen(v => !v)} aria-expanded={open}>
         {item.q}
       </button>
-      {open && <p className="subtle" style={{ marginTop: 8 }}>{item.a}</p>}
+      {open && <p className="subtle mt-8">{item.a}</p>}
     </div>
   );
 }

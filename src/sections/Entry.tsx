@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import { getNumber, setNumber, getString, setString } from '../utils/storage';
+import { useToast } from '../components/Toast';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
@@ -29,8 +30,7 @@ export default function Entry() {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const toast = useToast();
   const lastMilestone = useRef<number>(0);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
 
@@ -43,8 +43,7 @@ export default function Entry() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); setMessage('');
-    if (!validateEmail(email)) { setError('Enter a valid email'); return; }
+    if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
     try {
       const supa = await import('../utils/supabaseClient');
@@ -58,9 +57,9 @@ export default function Entry() {
         (window as any).__otpToken = undefined;
       }
       setSent(true);
-      setMessage('We sent a 6‑digit code to your email.');
+      toast.info('We sent a 6‑digit code to your email.');
     } catch (err: any) {
-      setError(err?.message || 'Could not send code.');
+      toast.error(err?.message || 'Could not send code.');
     } finally { setLoading(false); }
   };
 
@@ -71,7 +70,7 @@ export default function Entry() {
       if (navigator.share) await navigator.share({ title: 'HYBE Giveaway', text, url });
       else await navigator.clipboard.writeText(url);
       setShare((v) => v + 3);
-      setMessage('Shared! +3 entries');
+      toast.success('Shared! +3 entries');
     } catch {}
   };
 
@@ -79,7 +78,7 @@ export default function Entry() {
     const friend = prompt('Enter your friend\'s email to send an invite:');
     if (friend && validateEmail(friend)) {
       setInvite(v => v + 5);
-      setMessage('Invite sent! +5 entries');
+      toast.success('Invite sent! +5 entries');
     }
   };
 
@@ -101,18 +100,16 @@ export default function Entry() {
       <div className="container">
         <h2 className="section-title">Enter the Giveaway</h2>
         <p className="subtle">Complete the form and boost your odds with shares and invites.</p>
-        <form className="card" style={{ padding: 16, marginTop: 12 }} onSubmit={submit}>
+        <form className="card card-pad mt-12" onSubmit={submit}>
           {!sent ? (
             <div>
               <label className="label">Email</label>
               <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
-              {error && <div className="subtle text-error" style={{ marginTop: 6 }}>{error}</div>}
-              {message && !error && <div className="subtle" style={{ marginTop: 6 }}>{message}</div>}
-              <div className="button-row" style={{ marginTop: 14 }}>
+              <div className="button-row mt-14">
                 <button className="button-primary" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send 6‑digit code'}</button>
                 <a className="button-secondary" href="/login">Login / Dashboard</a>
               </div>
-              <p className="subtle" style={{ marginTop: 8 }}>We’ll send a one-time 6‑digit code (expires in 10 minutes).</p>
+              <p className="subtle mt-8">We’ll send a one-time 6‑digit code (expires in 10 minutes).</p>
             </div>
           ) : (
             <div>
@@ -135,18 +132,15 @@ export default function Entry() {
                   </select>
                 </div>
               </div>
-              <div style={{ marginTop: 12 }}>
+              <div className="mt-12">
                 <label className="label">Enter 6‑digit code</label>
                 <input className="input" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="000000" />
               </div>
-              {error && <div className="subtle text-error" style={{ marginTop: 6 }}>{error}</div>}
-              {message && !error && <div className="subtle" style={{ marginTop: 6 }}>{message}</div>}
-              <div className="button-row" style={{ marginTop: 14 }}>
+              <div className="button-row mt-14">
                 <button type="button" className="button-primary" onClick={async () => {
-                  setError(''); setMessage('');
-                  if (!name.trim()) { setError('Name is required'); return; }
-                  if (!country) { setError('Select a country'); return; }
-                  if (code.length !== 6) { setError('Enter the 6‑digit code'); return; }
+                  if (!name.trim()) { toast.error('Name is required'); return; }
+                  if (!country) { toast.error('Select a country'); return; }
+                  if (code.length !== 6) { toast.error('Enter the 6‑digit code'); return; }
                   setLoading(true);
                   try {
                     const supa = await import('../utils/supabaseClient');
@@ -171,26 +165,26 @@ export default function Entry() {
                     }
                     setBase(1);
                     try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
-                    setMessage('Verified and entered. Welcome!');
+                    toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
-                    setError(e?.message || 'Invalid or expired code');
+                    toast.error(e?.message || 'Invalid or expired code');
                   } finally { setLoading(false); }
                 }}>Verify & Submit Entry</button>
-                <button type="button" className="button-secondary" onClick={() => { setSent(false); setError(''); setMessage(''); }}>Change email</button>
+                <button type="button" className="button-secondary" onClick={() => { setSent(false); }}>Change email</button>
               </div>
             </div>
           )}
 
-          <div className="card" style={{ padding: 16, marginTop: 14 }}>
+          <div className="card card-pad mt-14">
             <strong>Gamified Extra Entries</strong>
             <p className="subtle">Share on social = +3 entries • Invite a friend = +5 entries</p>
             <div className="button-row">
               <button type="button" className="button-secondary" onClick={shareNow}>Share Now</button>
               <button type="button" className="button-secondary" onClick={inviteFriend}>Invite a Friend</button>
             </div>
-            <div style={{ marginTop: 10 }}>
+            <div className="mt-10">
               <ProgressBar value={total} max={20} />
-              <div className="subtle" style={{ marginTop: 6 }}>{total} entries earned</div>
+              <div className="subtle mt-6">{total} entries earned</div>
             </div>
           </div>
         </form>
