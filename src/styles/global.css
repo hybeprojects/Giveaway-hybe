@@ -59,3 +59,40 @@ img, video { display: block; max-width: 100%; height: auto; }
 @media (min-width: 1000px) {
   .carousel { grid-auto-columns: 33%; }
 }
+
+/* Utilities */
+.row { display: flex; gap: 12px; }
+.row-center { display: flex; align-items: center; gap: 10px; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.full-width { width: 100%; }
+.text-start { text-align: left; }
+.dim { opacity: 0.6; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-14 { margin-top: 14px; }
+.mb-16 { margin-bottom: 16px; }
+.brand-row { display: flex; align-items: center; gap: 10px; }
+.footer-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prize-card-body { padding: 16px; }
+.prize-title { margin: 4px 0 8px; }
+
+/* Toasts */
+.toast-stack { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 10px; z-index: 60; }
+.toast-item { backdrop-filter: saturate(180%) blur(10px); background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); animation: toast-in .3s ease; }
+.toast-item.success { border-color: rgba(18,194,122,0.5); }
+.toast-item.error { border-color: rgba(255,77,79,0.5); }
+.toast-item.info { border-color: rgba(10,132,255,0.5); }
+.toast-content { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; color: var(--text); }
+.toast-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent-blue); }
+.toast-item.success .toast-dot { background: var(--success); }
+.toast-item.error .toast-dot { background: var(--danger); }
+.toast-close { background: transparent; border: none; color: var(--muted); font-size: 18px; padding: 0 4px; cursor: pointer; }
+.toast-close:hover { color: var(--text); }
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Route transitions */
+.route-view { opacity: 0; transform: translateY(8px); transition: opacity .35s ease, transform .35s ease; }
+.route-view.enter { opacity: 1; transform: translateY(0); }
+
+/* Skeleton utility */
+.skeleton-line { display: inline-block; width: 60%; height: 12px; border-radius: 6px; }
