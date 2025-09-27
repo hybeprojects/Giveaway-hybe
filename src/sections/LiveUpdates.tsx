@@ -31,8 +31,8 @@ export default function LiveUpdates() {
       const urls = [`${apiBase}/events`, '/events'];
       for (const url of urls) {
         try {
-          const res = await fetch(url);
-          if (res.ok) {
+          const res = await tryFetch(url, { method: 'GET' });
+          if (res && res.ok) {
             const data = await res.json();
             if (active) setFeed(data);
             return;
