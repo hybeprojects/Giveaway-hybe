@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Countdown from '../components/Countdown';
-import { apiBase } from '../utils/auth';
+import { apiBase, tryFetch } from '../utils/auth';
 
 function useAnimatedCount(start: number) {
   const [n, setN] = useState(start);
