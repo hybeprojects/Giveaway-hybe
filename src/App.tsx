@@ -15,16 +15,16 @@ import OnboardingModal from './components/OnboardingModal';
 
 function Landing() {
   const [isModalOpen, setModalOpen] = useState(false);
+  const MODAL_KEY = 'onboard_v1';
 
   useEffect(() => {
-    const hasVisited = localStorage.getItem('hasVisited');
-    if (!hasVisited) {
-      setModalOpen(true);
-      localStorage.setItem('hasVisited', 'true');
-    }
+    try {
+      if (!localStorage.getItem(MODAL_KEY)) setModalOpen(true);
+    } catch {}
   }, []);
 
   const handleCloseModal = () => {
+    try { localStorage.setItem(MODAL_KEY, 'true'); } catch {}
     setModalOpen(false);
   };
 
