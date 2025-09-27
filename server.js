@@ -75,6 +75,44 @@ function getSmtpConfig() {
   return { host, port, secure, user, pass, from };
 }
 
+// Brand-consistent, table-based email template
+function renderEmail(req, heading, innerHtml) {
+  const origin = `${req.protocol}://${req.get('host')}`;
+  const logoSrc = `${origin}/hybe-logo.svg`;
+  const hybeBlack = '#111';
+  const hybeYellow = '#f5ff00';
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#fff;margin:0;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="width:560px;max-width:100%;border:1px solid ${hybeBlack};border-radius:12px;overflow:hidden">
+            <tr>
+              <td style="background:${hybeYellow};padding:16px 24px">
+                <img src="${logoSrc}" alt="HYBE" width="100" style="display:block" />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;font-family:'Noto Sans KR', Arial, sans-serif;color:${hybeBlack}">
+                <h2 style="margin:0 0 8px 0;font-family:'Big Hit 201110', Arial, sans-serif;text-transform:uppercase;font-size:20px;line-height:24px">${heading}</h2>
+                ${innerHtml}
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #eee;padding:16px 24px;font-family:'Noto Sans KR', Arial, sans-serif;color:#999;font-size:12px">
+                <div style="margin-bottom:8px">
+                  <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Terms of Service</a>
+                  <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Privacy Policy</a>
+                  <a href="#" style="color:#999;text-decoration:none">Contact Us</a>
+                </div>
+                © HYBE Corporation. All Rights Reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;
+}
+
 (async () => {
   const conf = getSmtpConfig();
   if (!conf) {
@@ -183,38 +221,13 @@ app.post('/send-otp', async (req, res) => {
     if (!host || !user || !pass) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
     const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
-    const html = `
-      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#fff;margin:0;padding:24px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="width:560px;max-width:100%;border:1px solid #111;border-radius:12px;overflow:hidden">
-              <tr>
-                <td style="background:#f5ff00;padding:16px 24px">
-                  <img src="${req.protocol}://${req.get('host')}/hybe-logo.svg" alt="HYBE" width="100" style="display:block" />
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px;font-family:Montserrat, Poppins, Arial, sans-serif;color:#111">
-                  <h2 style="margin:0 0 8px 0;font-family:Montserrat, Arial, sans-serif;text-transform:uppercase;font-size:20px;line-height:24px">HYBE Giveaway verification code</h2>
-                  <p style="margin:0 0 16px 0;font-size:14px;color:#666">Your one-time code is:</p>
-                  <div style="font-size:28px;font-weight:700;letter-spacing:4px;padding:12px 16px;border:1px dashed #111;display:inline-block">${code}</div>
-                  <p style="margin:16px 0 0 0;font-size:14px;color:#666">This code expires in 10 minutes. If you did not request this, ignore this email.</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="border-top:1px solid #eee;padding:16px 24px;font-family:Montserrat, Poppins, Arial, sans-serif;color:#999;font-size:12px">
-                  <div style="margin-bottom:8px">
-                    <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Terms of Service</a>
-                    <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Privacy Policy</a>
-                    <a href="#" style="color:#999;text-decoration:none">Contact Us</a>
-                  </div>
-                  © HYBE Corporation. All Rights Reserved.
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>`;
+
+    const bodyHtml = `
+      <p style="margin:0 0 16px 0;font-size:14px;color:#666">Your one-time code is:</p>
+      <div style="font-size:28px;font-weight:700;letter-spacing:4px;padding:12px 16px;border:1px dashed #111;display:inline-block">${code}</div>
+      <p style="margin:16px 0 0 0;font-size:14px;color:#666">This code expires in 10 minutes. If you did not request this, ignore this email.</p>
+    `;
+    const html = renderEmail(req, 'HYBE Giveaway verification code', bodyHtml);
 
     await transport.sendMail({ from, to: email, subject: 'Your HYBE Giveaway code', text: `Your code is ${code} (expires in 10 minutes)`, html });
 
@@ -321,46 +334,15 @@ app.post('/activity-email', async (req, res) => {
     };
     const subject = subjects[type] || 'HYBE Giveaway update';
 
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || '465');
-    const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.FROM_EMAIL || user;
-    if (!host || !user || !pass) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
+    const conf = getSmtpConfig();
+    if (!conf) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
-    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
-    const html = `
-      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#fff;margin:0;padding:24px 0;">
-        <tr>
-          <td align="center">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="width:560px;max-width:100%;border:1px solid #111;border-radius:12px;overflow:hidden">
-              <tr>
-                <td style="background:#f5ff00;padding:16px 24px">
-                  <img src="${req.protocol}://${req.get('host')}/hybe-logo.svg" alt="HYBE" width="100" style="display:block" />
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px;font-family:Montserrat, Poppins, Arial, sans-serif;color:#111">
-                  <h2 style="margin:0 0 8px 0;font-family:Montserrat, Arial, sans-serif;text-transform:uppercase;font-size:20px;line-height:24px">${subject}</h2>
-                  <p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>
-                </td>
-              </tr>
-              <tr>
-                <td style="border-top:1px solid #eee;padding:16px 24px;font-family:Montserrat, Poppins, Arial, sans-serif;color:#999;font-size:12px">
-                  <div style="margin-bottom:8px">
-                    <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Terms of Service</a>
-                    <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Privacy Policy</a>
-                    <a href="#" style="color:#999;text-decoration:none">Contact Us</a>
-                  </div>
-                  © HYBE Corporation. All Rights Reserved.
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>`;
-    await transport.sendMail({ from, to: email, subject, text: (detail || '').toString(), html });
+    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+
+    const bodyHtml = `<p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>`;
+    const html = renderEmail(req, subject, bodyHtml);
+
+    await transport.sendMail({ from: conf.from, to: email, subject, text: (detail || '').toString(), html });
 
     return res.json({ ok: true });
   } catch (e) {
