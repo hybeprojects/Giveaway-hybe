@@ -7,6 +7,17 @@ import './styles/global.css';
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'light' || savedTheme === 'dark') {
   document.documentElement.setAttribute('data-theme', savedTheme);
+} else {
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+  // Keep in sync with system if user hasn't chosen explicitly
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+  const apply = () => document.documentElement.setAttribute('data-theme', mq && mq.matches ? 'light' : 'dark');
+  if (mq) {
+    // addEventListener is modern; fall back to addListener for older browsers
+    // @ts-ignore
+    mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+  }
 }
 
 if ('serviceWorker' in navigator) {
