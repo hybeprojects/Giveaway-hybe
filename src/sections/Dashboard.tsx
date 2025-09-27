@@ -23,7 +23,11 @@ export default function Dashboard() {
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0 || n > bal.available) { toast.error('Invalid amount'); return; }
     addDebit(n);
-    try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'withdrawal', detail: `Withdrawal requested: $${n.toFixed(2)}` }) }); } catch {}
+    try {
+      const { apiBase } = await import('../utils/auth');
+      const sessionToken = localStorage.getItem('local_session') || '';
+      await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, type: 'withdrawal', detail: `Withdrawal requested: $${n.toFixed(2)}` }) });
+    } catch {}
     toast.success('Withdrawal requested');
     window.location.reload();
   };
