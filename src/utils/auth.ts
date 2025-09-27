@@ -3,20 +3,70 @@ export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; err
 
 export const apiBase: string = (import.meta as any).env?.VITE_API_BASE || '/.netlify/functions';
 
+async function tryFetch(url: string, opts: RequestInit) {
+  try {
+    const res = await fetch(url, opts);
+    return res;
+  } catch (e) {
+    // Network-level failure
+    return null as unknown as Response;
+  }
+}
+
+function buildHeaders() {
+  return { 'Content-Type': 'application/json' };
+}
+
+async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
+  if (!res) throw new Error(fallbackMessage);
+  if (!res.ok) {
+    try {
+      const body = await res.json();
+      if (body && body.error) throw new Error(body.error);
+    } catch {
+      throw new Error(fallbackMessage);
+    }
+  }
+  try {
+    return await res.json();
+  } catch (e) {
+    throw new Error('Invalid server response');
+  }
+}
+
 export async function requestOtp(email: string): Promise<string> {
-  const res = await fetch(`${apiBase}/send-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-  if (!res.ok) throw new Error('Failed to send code');
-  const data = (await res.json()) as SendOtpResponse;
-  if (!data.ok) throw new Error(data.error);
-  return data.token;
+  const body = JSON.stringify({ email });
+  const primary = `${apiBase.replace(/\/$/, '')}/send-otp`;
+  const fallback = '/.netlify/functions/send-otp';
+
+  let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
+
+  if (!res || !res.ok) {
+    // attempt fallback to local functions path
+    res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
+  }
+
+  const data = await parseJsonOrThrow(res, 'Failed to send code');
+  const typed = data as SendOtpResponse;
+  if (!typed.ok) throw new Error(typed.error || 'Failed to send code');
+  return typed.token;
 }
 
 export async function verifyOtp(email: string, code: string, token: string): Promise<string> {
-  const res = await fetch(`${apiBase}/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, token }) });
-  if (!res.ok) throw new Error('Verification failed');
-  const data = (await res.json()) as VerifyOtpResponse;
-  if (!data.ok) throw new Error(data.error);
-  return data.session;
+  const body = JSON.stringify({ email, code, token });
+  const primary = `${apiBase.replace(/\/$/, '')}/verify-otp`;
+  const fallback = '/.netlify/functions/verify-otp';
+
+  let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
+
+  if (!res || !res.ok) {
+    res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
+  }
+
+  const data = await parseJsonOrThrow(res, 'Verification failed');
+  const typed = data as VerifyOtpResponse;
+  if (!typed.ok) throw new Error(typed.error || 'Verification failed');
+  return typed.session;
 }
 
 export function saveLocalSession(session: string) {
