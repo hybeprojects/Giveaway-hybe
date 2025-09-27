@@ -1,0 +1,39 @@
+:root {
+  --hybe-black: #111;
+  --hybe-white: #fff;
+  --hybe-yellow: #f5ff00;
+  --hybe-gray: #bfbfbf;
+
+  --font-primary: 'Noto Sans KR', sans-serif;
+  --font-brand: 'Big Hit 201110', sans-serif;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--hybe-white);
+  color: var(--hybe-black);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-brand);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.button-primary {
+  background-color: var(--hybe-yellow);
+  color: var(--hybe-black);
+  border: 1px solid var(--hybe-yellow);
+  font-family: var(--font-brand);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.button-secondary {
+  background-color: transparent;
+  color: var(--hybe-black);
+  border: 1px solid var(--hybe-black);
+  font-family: var(--font-brand);
+  font-weight: 700;
+  text-transform: uppercase;
+}

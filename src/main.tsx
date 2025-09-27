@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import './styles/theme.css';
+import './styles/hybe-theme.css';
 import './styles/global.css';
 
 const savedTheme = localStorage.getItem('theme');
