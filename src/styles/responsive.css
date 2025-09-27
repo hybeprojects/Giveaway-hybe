@@ -93,6 +93,10 @@
     padding: 1.5rem;
   }
 
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
   /* Footer */
   .footer-content {
     flex-direction: column;
