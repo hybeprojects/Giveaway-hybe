@@ -2,8 +2,8 @@ export default function Footer() {
   return (
     <footer className="section footer" aria-label="Footer">
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="footer-row">
+          <div className="brand-row">
             <img src="/icons/icon.svg" width="24" height="24" alt="HYBE"/>
             <span>© HYBE Corp</span>
           </div>
