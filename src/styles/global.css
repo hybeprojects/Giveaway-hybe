@@ -406,4 +406,14 @@ img, video {
 .button-row {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
+
+/* Layout helpers */
+.hamburger-menu { display: none; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+/* Box sizing for consistent layouts */
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
