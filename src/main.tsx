@@ -12,7 +12,11 @@ if (savedTheme === 'light' || savedTheme === 'dark') {
   document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
   // Keep in sync with system if user hasn't chosen explicitly
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
-  const apply = () => document.documentElement.setAttribute('data-theme', mq && mq.matches ? 'light' : 'dark');
+  const apply = () => {
+    if (!localStorage.getItem('theme')) {
+      document.documentElement.setAttribute('data-theme', mq && mq.matches ? 'light' : 'dark');
+    }
+  };
   if (mq) {
     // addEventListener is modern; fall back to addListener for older browsers
     // @ts-ignore
