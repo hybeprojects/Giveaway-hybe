@@ -18,7 +18,18 @@ const databaseUrl = process.env.DATABASE_URL || '';
 let pool = null;
 if (databaseUrl) {
   const ssl = /sslmode=require/.test(databaseUrl) || process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production';
-  pool = new Pool({ connectionString: databaseUrl, ssl: ssl ? { rejectUnauthorized: false } : undefined });
+  let sslConfig = undefined;
+  if (ssl) {
+    const inlineCa = process.env.PGSSLROOTCERT;
+    if (inlineCa && inlineCa.trim().length > 0) {
+      sslConfig = { ca: inlineCa, rejectUnauthorized: true };
+    } else if (process.env.PGSSLMODE === 'no-verify') {
+      sslConfig = { rejectUnauthorized: false };
+    } else {
+      sslConfig = { rejectUnauthorized: false };
+    }
+  }
+  pool = new Pool({ connectionString: databaseUrl, ssl: sslConfig });
   (async () => {
     try {
       // Ensure schema exists
