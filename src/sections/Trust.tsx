@@ -9,7 +9,7 @@ export default function Trust() {
           <div className="card card-pad">
             <h3>Provable Fairness</h3>
             <p className="subtle">Our selection uses cryptographic commitments to ensure fairness, auditable by anyone.</p>
-            <div style={{ display: 'flex', gap: 12, marginTop: 10, alignItems: 'center' }}>
+            <div className="row-center mt-10">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z" stroke="var(--accent-blue)" strokeWidth="1.5" fill="rgba(10,132,255,0.15)"/>
                 <path d="M8 12l2.5 2.5L16 9" stroke="var(--accent-gold)" strokeWidth="1.5"/>
