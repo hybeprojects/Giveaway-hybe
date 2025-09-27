@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles/hybe-theme.css';
 import './styles/global.css';
+import './styles/responsive.css';
 
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'light' || savedTheme === 'dark') {

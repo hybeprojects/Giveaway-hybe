@@ -124,12 +124,12 @@ img, video {
 }
 
 .hero-title {
-  font-size: 4rem;
+  font-size: clamp(2.5rem, 5vw, 4rem);
   margin-bottom: 1rem;
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
   margin-bottom: 2rem;
   font-weight: 400;
 }
