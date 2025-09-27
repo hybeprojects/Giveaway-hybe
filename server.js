@@ -4,12 +4,52 @@ import fs from 'fs';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import pg from 'pg';
 import { fileURLToPath } from 'url';
 
+const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Database pool (Render Postgres)
+const databaseUrl = process.env.DATABASE_URL || '';
+let pool = null;
+if (databaseUrl) {
+  const ssl = /sslmode=require/.test(databaseUrl) || process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production';
+  pool = new Pool({ connectionString: databaseUrl, ssl: ssl ? { rejectUnauthorized: false } : undefined });
+  (async () => {
+    try {
+      // Ensure schema exists
+      await pool.query(`
+        create table if not exists entries (
+          email text primary key,
+          name text not null,
+          country text not null,
+          base integer not null default 1,
+          share integer not null default 0,
+          invite integer not null default 0,
+          total integer not null default 1,
+          created_at timestamptz not null default now()
+        );
+        create table if not exists events (
+          id bigserial primary key,
+          type text not null,
+          text text not null,
+          meta jsonb,
+          created_at timestamptz not null default now()
+        );
+        create index if not exists events_created_at_idx on events (created_at desc);
+      `);
+      console.log('Database ready');
+    } catch (e) {
+      console.error('DB init failed:', e?.message || e);
+    }
+  })();
+} else {
+  console.warn('DATABASE_URL not set. Data endpoints will be disabled.');
+}
 
 // Basic CORS support (configurable)
 app.use((req, res, next) => {
@@ -56,7 +96,7 @@ function isAuthorized(req, claimedEmail) {
   return Boolean(adminToken && req.headers['x-admin-token'] === adminToken);
 }
 
-// --- API endpoints (matching existing frontend calls) ---
+// --- API endpoints ---
 const OTP_EXP_SECONDS = 600; // 10 minutes
 const MIN_RETRY_SECONDS = 60; // per device throttle
 const MAX_PER_HOUR = 5;
@@ -93,18 +133,11 @@ app.post('/send-otp', async (req, res) => {
       }
     }
 
-    // Optional duplicate email check (if Supabase env present)
+    // Duplicate email check via DB (if available)
     try {
-      const supabaseUrlEnv = process.env.SUPABASE_URL;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (supabaseUrlEnv && serviceKey) {
-        const r = await fetch(`${supabaseUrlEnv}/rest/v1/entries?email=eq.${encodeURIComponent(email)}&select=email`, {
-          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
-        });
-        if (r.ok) {
-          const arr = await r.json();
-          if (arr && arr.length > 0) return res.status(409).json({ ok: false, error: 'This email is already registered.' });
-        }
+      if (pool) {
+        const r = await pool.query('select 1 from entries where email = $1 limit 1', [email]);
+        if (r.rowCount && r.rowCount > 0) return res.status(409).json({ ok: false, error: 'This email is already registered.' });
       }
     } catch {}
 
@@ -171,26 +204,24 @@ app.post('/verify-otp', async (req, res) => {
 
 app.post('/post-entry', async (req, res) => {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) return res.status(500).json({ ok: false, error: 'Server not configured' });
-
+    if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
     const { email, name, country, base = 1, share = 0, invite = 0 } = req.body || {};
     if (!isAuthorized(req, email)) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     if (!email || !name || !country) return res.status(400).json({ ok: false, error: 'Missing required fields' });
 
     const total = Number(base) + Number(share) + Number(invite);
-
-    const r = await fetch(`${supabaseUrl}/rest/v1/entries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify([{ email, name, country, base, share, invite, total }])
-    });
-
-    if (!r.ok) {
-      const err = await r.text();
-      return res.status(502).json({ ok: false, error: `Supabase error: ${err}` });
-    }
+    await pool.query(
+      `insert into entries(email, name, country, base, share, invite, total)
+       values ($1,$2,$3,$4,$5,$6,$7)
+       on conflict (email) do update set
+         name=excluded.name,
+         country=excluded.country,
+         base=excluded.base,
+         share=excluded.share,
+         invite=excluded.invite,
+         total=excluded.total`,
+      [email, name, country, Number(base), Number(share), Number(invite), Number(total)]
+    );
 
     return res.json({ ok: true });
   } catch (e) {
@@ -200,28 +231,26 @@ app.post('/post-entry', async (req, res) => {
 
 app.post('/post-event', async (req, res) => {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) return res.status(500).json({ ok: false, error: 'Server not configured' });
-
+    if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
     if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     const { type, text, meta } = req.body || {};
     if (!type || !text) return res.status(400).json({ ok: false, error: 'Missing required fields' });
 
-    const r = await fetch(`${supabaseUrl}/rest/v1/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` },
-      body: JSON.stringify([{ type, text, meta }])
-    });
-
-    if (!r.ok) {
-      const err = await r.text();
-      return res.status(502).json({ ok: false, error: `Supabase error: ${err}` });
-    }
-
+    await pool.query('insert into events(type, text, meta) values ($1,$2,$3)', [type, text, meta ? JSON.stringify(meta) : null]);
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e?.message || 'Internal error' });
+  }
+});
+
+// Recent events feed (public)
+app.get('/events', async (_req, res) => {
+  try {
+    if (!pool) return res.json([]);
+    const r = await pool.query('select text, created_at from events order by created_at desc limit 10');
+    return res.json(r.rows || []);
+  } catch (e) {
+    return res.json([]);
   }
 });
 

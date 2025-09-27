@@ -1,9 +1,10 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
-export const apiBase: string = (import.meta as any).env?.VITE_API_BASE || '/.netlify/functions';
+const rawApiBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+export const apiBase: string = rawApiBase ? rawApiBase.replace(/\/$/, '') : '';
 
-async function tryFetch(url: string, opts: RequestInit) {
+export async function tryFetch(url: string, opts: RequestInit) {
   try {
     const res = await fetch(url, opts);
     return res;
@@ -36,8 +37,8 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
 
 export async function requestOtp(email: string): Promise<string> {
   const body = JSON.stringify({ email });
-  const primary = `${apiBase.replace(/\/$/, '')}/send-otp`;
-  const fallback = '/.netlify/functions/send-otp';
+  const primary = `${apiBase}/send-otp`;
+  const fallback = '/send-otp';
 
   let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
 
@@ -54,8 +55,8 @@ export async function requestOtp(email: string): Promise<string> {
 
 export async function verifyOtp(email: string, code: string, token: string): Promise<string> {
   const body = JSON.stringify({ email, code, token });
-  const primary = `${apiBase.replace(/\/$/, '')}/verify-otp`;
-  const fallback = '/.netlify/functions/verify-otp';
+  const primary = `${apiBase}/verify-otp`;
+  const fallback = '/verify-otp';
 
   let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
 

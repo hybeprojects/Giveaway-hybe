@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import { getNumber, setNumber, getString, setString } from '../utils/storage';
 import { useToast } from '../components/Toast';
+
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
 function burstConfetti() {
@@ -45,16 +46,9 @@ export default function Entry() {
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
     try {
-      const supa = await import('../utils/supabaseClient');
-      const useCustom = Boolean((import.meta as any).env?.VITE_API_BASE);
-      if (useCustom || !supa.isSupabaseConfigured()) {
-        const auth = await import('../utils/auth');
-        const token = await auth.requestOtp(email);
-        (window as any).__otpToken = token;
-      } else {
-        await supa.sendEmailOtp(email);
-        (window as any).__otpToken = undefined;
-      }
+      const auth = await import('../utils/auth');
+      const token = await auth.requestOtp(email);
+      (window as any).__otpToken = token;
       setSent(true);
       toast.info('We sent a 6‑digit code to your email.');
     } catch (err: any) {
@@ -142,29 +136,19 @@ export default function Entry() {
                   if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
                   setLoading(true);
                   try {
-                    const supa = await import('../utils/supabaseClient');
-                    if (supa.isSupabaseConfigured() && !(import.meta as any).env?.VITE_API_BASE) {
-                      await supa.verifyEmailOtp(email, code);
-                      const client = supa.getSupabase();
-                      if (client) {
-                        await client.from('entries').upsert({ email, name, country, base, share, invite, total: 1 + share + invite }, { onConflict: 'email' });
-                        await client.from('events').insert({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } });
-                      }
-                    } else {
-                      const auth = await import('../utils/auth');
-                      const token = (window as any).__otpToken as string | undefined;
-                      if (!token) throw new Error('Missing verification token. Resend code.');
-                      const session = await auth.verifyOtp(email, code, token);
-                      auth.saveLocalSession(session);
-                      try {
-                        const { apiBase } = await import('../utils/auth');
-                        const session = localStorage.getItem('local_session') || '';
-                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
-                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
-                      } catch {}
-                    }
+                    const auth = await import('../utils/auth');
+                    const token = (window as any).__otpToken as string | undefined;
+                    if (!token) throw new Error('Missing verification token. Resend code.');
+                    const session = await auth.verifyOtp(email, code, token);
+                    auth.saveLocalSession(session);
+                    try {
+                      const { apiBase } = await import('../utils/auth');
+                      const sessionToken = localStorage.getItem('local_session') || '';
+                      await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                      await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                    } catch {}
                     setBase(1);
-                    try { const { apiBase } = await import('../utils/auth'); const session = localStorage.getItem('local_session') || ''; await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
+                    try { const { apiBase } = await import('../utils/auth'); const sessionToken = localStorage.getItem('local_session') || ''; await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
                     toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
