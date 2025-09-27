@@ -64,6 +64,32 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '1mb' }));
 
+function getSmtpConfig() {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || '465');
+  const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.FROM_EMAIL || user;
+  if (!host || !user || !pass) return null;
+  return { host, port, secure, user, pass, from };
+}
+
+(async () => {
+  const conf = getSmtpConfig();
+  if (!conf) {
+    console.warn('SMTP not configured');
+    return;
+  }
+  try {
+    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    await transport.verify();
+    console.log('SMTP ready:', conf.host, conf.port, conf.secure ? 'secure' : 'starttls');
+  } catch (e) {
+    console.error('SMTP verify failed:', e?.message || e);
+  }
+})();
+
 function parseCookies(header) {
   const out = {};
   if (!header) return out;
@@ -287,6 +313,22 @@ app.post('/activity-email', async (req, res) => {
 
 // Health check
 app.get('/healthz', (req, res) => res.json({ ok: true }));
+
+app.get('/smtp-verify', async (req, res) => {
+  try {
+    const adminToken = process.env.ADMIN_TOKEN;
+    if (!adminToken || req.headers['x-admin-token'] !== adminToken) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    const conf = getSmtpConfig();
+    if (!conf) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
+    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    await transport.verify();
+    return res.json({ ok: true, host: conf.host, port: conf.port, secure: conf.secure });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'Verify failed' });
+  }
+});
 
 // --- Static file hosting for SPA ---
 const distDir = path.join(__dirname, 'dist');
