@@ -35,8 +35,8 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
   }
 }
 
-export async function requestOtp(email: string): Promise<string> {
-  const body = JSON.stringify({ email });
+export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
+  const body = JSON.stringify({ email, purpose });
   const primary = `${apiBase}/send-otp`;
   const fallback = '/send-otp';
 
