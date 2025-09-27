@@ -78,8 +78,11 @@ export function getLocalSession(): { email: string } | null {
   const t = localStorage.getItem('local_session');
   if (!t) return null;
   try {
-    const [, payload] = t.split('.');
-    const json = JSON.parse(atob(payload));
+    const parts = t.split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1];
+    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+    const json = JSON.parse(atob(b64));
     if (json && json.email) return { email: json.email };
   } catch {}
   return null;
