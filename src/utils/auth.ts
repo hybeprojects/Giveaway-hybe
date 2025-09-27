@@ -1,10 +1,10 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
-const base = '/.netlify/functions';
+export const apiBase: string = (import.meta as any).env?.VITE_API_BASE || '/.netlify/functions';
 
 export async function requestOtp(email: string): Promise<string> {
-  const res = await fetch(`${base}/send-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+  const res = await fetch(`${apiBase}/send-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
   if (!res.ok) throw new Error('Failed to send code');
   const data = (await res.json()) as SendOtpResponse;
   if (!data.ok) throw new Error(data.error);
@@ -12,7 +12,7 @@ export async function requestOtp(email: string): Promise<string> {
 }
 
 export async function verifyOtp(email: string, code: string, token: string): Promise<string> {
-  const res = await fetch(`${base}/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, token }) });
+  const res = await fetch(`${apiBase}/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, token }) });
   if (!res.ok) throw new Error('Verification failed');
   const data = (await res.json()) as VerifyOtpResponse;
   if (!data.ok) throw new Error(data.error);

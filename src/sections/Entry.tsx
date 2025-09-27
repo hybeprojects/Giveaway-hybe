@@ -1,8 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import { getNumber, setNumber, getString, setString } from '../utils/storage';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
+
+function burstConfetti() {
+  const count = 60;
+  const root = document.body;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('i');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + 'vw';
+    el.style.background = `hsl(${Math.floor(Math.random()*360)},80%,60%)`;
+    el.style.setProperty('--tx', (Math.random()*2-1).toFixed(2));
+    el.style.setProperty('--dur', (0.8 + Math.random()*0.8).toFixed(2) + 's');
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }
+}
 
 export default function Entry() {
   const [name, setName] = useState(getString('name'));
@@ -14,6 +29,9 @@ export default function Entry() {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const lastMilestone = useRef<number>(0);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
 
   useEffect(() => { setString('name', name); }, [name]);
@@ -25,22 +43,24 @@ export default function Entry() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateEmail(email)) return alert('Enter a valid email');
+    setError(''); setMessage('');
+    if (!validateEmail(email)) { setError('Enter a valid email'); return; }
     setLoading(true);
     try {
       const supa = await import('../utils/supabaseClient');
-      if (supa.isSupabaseConfigured()) {
-        await supa.sendEmailOtp(email);
-        (window as any).__otpToken = undefined;
-      } else {
+      const useCustom = Boolean((import.meta as any).env?.VITE_API_BASE);
+      if (useCustom || !supa.isSupabaseConfigured()) {
         const auth = await import('../utils/auth');
         const token = await auth.requestOtp(email);
         (window as any).__otpToken = token;
+      } else {
+        await supa.sendEmailOtp(email);
+        (window as any).__otpToken = undefined;
       }
       setSent(true);
-      alert('We sent a 6-digit code to your email.');
+      setMessage('We sent a 6‑digit code to your email.');
     } catch (err: any) {
-      alert(err?.message || 'Could not send code.');
+      setError(err?.message || 'Could not send code.');
     } finally { setLoading(false); }
   };
 
@@ -51,6 +71,7 @@ export default function Entry() {
       if (navigator.share) await navigator.share({ title: 'HYBE Giveaway', text, url });
       else await navigator.clipboard.writeText(url);
       setShare((v) => v + 3);
+      setMessage('Shared! +3 entries');
     } catch {}
   };
 
@@ -58,12 +79,22 @@ export default function Entry() {
     const friend = prompt('Enter your friend\'s email to send an invite:');
     if (friend && validateEmail(friend)) {
       setInvite(v => v + 5);
-      alert('Invite sent. +5 entries!');
+      setMessage('Invite sent! +5 entries');
     }
   };
 
   const googleLogin = () => alert('Google sign-in can be connected.');
   const weverseLogin = () => alert('Weverse sign-in can be connected.');
+
+  useEffect(() => {
+    const milestones = [5, 10, 20];
+    for (const m of milestones) {
+      if (lastMilestone.current < m && total >= m) {
+        burstConfetti();
+        lastMilestone.current = m;
+      }
+    }
+  }, [total]);
 
   return (
     <section id="enter" className="section" aria-label="Entry">
@@ -75,6 +106,8 @@ export default function Entry() {
             <div>
               <label className="label">Email</label>
               <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+              {error && <div className="subtle text-error" style={{ marginTop: 6 }}>{error}</div>}
+              {message && !error && <div className="subtle" style={{ marginTop: 6 }}>{message}</div>}
               <div className="button-row" style={{ marginTop: 14 }}>
                 <button className="button-primary" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send 6‑digit code'}</button>
                 <a className="button-secondary" href="/login">Login / Dashboard</a>
@@ -106,31 +139,44 @@ export default function Entry() {
                 <label className="label">Enter 6‑digit code</label>
                 <input className="input" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="000000" />
               </div>
+              {error && <div className="subtle text-error" style={{ marginTop: 6 }}>{error}</div>}
+              {message && !error && <div className="subtle" style={{ marginTop: 6 }}>{message}</div>}
               <div className="button-row" style={{ marginTop: 14 }}>
                 <button type="button" className="button-primary" onClick={async () => {
-                  if (!name.trim()) return alert('Name is required');
-                  if (!country) return alert('Select a country');
-                  if (code.length !== 6) return alert('Enter the 6‑digit code');
+                  setError(''); setMessage('');
+                  if (!name.trim()) { setError('Name is required'); return; }
+                  if (!country) { setError('Select a country'); return; }
+                  if (code.length !== 6) { setError('Enter the 6‑digit code'); return; }
                   setLoading(true);
                   try {
                     const supa = await import('../utils/supabaseClient');
-                    if (supa.isSupabaseConfigured()) {
+                    if (supa.isSupabaseConfigured() && !(import.meta as any).env?.VITE_API_BASE) {
                       await supa.verifyEmailOtp(email, code);
+                      const client = supa.getSupabase();
+                      if (client) {
+                        await client.from('entries').upsert({ email, name, country, base, share, invite, total: 1 + share + invite }, { onConflict: 'email' });
+                        await client.from('events').insert({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } });
+                      }
                     } else {
                       const auth = await import('../utils/auth');
                       const token = (window as any).__otpToken as string | undefined;
                       if (!token) throw new Error('Missing verification token. Resend code.');
                       const session = await auth.verifyOtp(email, code, token);
                       auth.saveLocalSession(session);
+                      try {
+                        const { apiBase } = await import('../utils/auth');
+                        await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                        await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': (import.meta as any).env?.VITE_ADMIN_TOKEN || '' }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                      } catch {}
                     }
                     setBase(1);
-                    try { await fetch('/.netlify/functions/activity-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
-                    alert('Verified and entered. Welcome!');
+                    try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
+                    setMessage('Verified and entered. Welcome!');
                   } catch (e: any) {
-                    alert(e?.message || 'Invalid or expired code');
+                    setError(e?.message || 'Invalid or expired code');
                   } finally { setLoading(false); }
                 }}>Verify & Submit Entry</button>
-                <button type="button" className="button-secondary" onClick={() => setSent(false)}>Change email</button>
+                <button type="button" className="button-secondary" onClick={() => { setSent(false); setError(''); setMessage(''); }}>Change email</button>
               </div>
             </div>
           )}

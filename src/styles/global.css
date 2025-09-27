@@ -9,6 +9,10 @@ img, video { display: block; max-width: 100%; height: auto; }
 .progress-inner { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); width: 0%; transition: width .4s ease; }
 .scroll-reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
 .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.18), rgba(255,255,255,0.08)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.confetti-piece { position: fixed; top: -10px; width: 8px; height: 12px; border-radius: 2px; transform: translate3d(0,0,0) rotate(0deg); animation: fall var(--dur,1.2s) linear forwards; }
+@keyframes fall { 0% { transform: translate(calc(var(--tx, 0) * 10vw), -2vh) rotate(0deg); opacity: 1; } 100% { transform: translate(calc(var(--tx, 0) * 40vw), 100vh) rotate(720deg); opacity: 0; } }
 .carousel { display: grid; grid-auto-flow: column; grid-auto-columns: 80%; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
 .carousel::-webkit-scrollbar { height: 8px; }
 .carousel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 999px; }
@@ -28,6 +32,7 @@ img, video { display: block; max-width: 100%; height: auto; }
 .timer { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .timer .unit { background: rgba(255,255,255,0.08); padding: 10px 12px; border-radius: 10px; min-width: 64px; }
 .footer { font-size: 14px; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; }
+.text-error { color: #ff6b6b; }
 
 /* Responsive enhancements */
 .hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

@@ -31,7 +31,7 @@ export default function Dashboard() {
     if (!Number.isFinite(n) || n <= 0 || n > bal.available) { alert('Invalid amount'); return; }
     // In production, call backend to create Stripe payout. Here we record a debit locally for dev.
     addDebit(n);
-    try { await fetch('/.netlify/functions/activity-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'withdrawal', detail: `Withdrawal requested: $${n.toFixed(2)}` }) }); } catch {}
+    try { const { apiBase } = await import('../utils/auth'); await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, type: 'withdrawal', detail: `Withdrawal requested: $${n.toFixed(2)}` }) }); } catch {}
     window.location.reload();
   };
 
