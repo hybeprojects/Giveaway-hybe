@@ -15,6 +15,20 @@ const app = express();
 
 // Database pool (Render Postgres)
 const databaseUrl = process.env.DATABASE_URL || '';
+const sslConfig = (() => {
+  try {
+    if (process.env.DATABASE_SSL === 'true') return true;
+    if (process.env.DATABASE_SSL === 'false') return false;
+    if (!databaseUrl) return false;
+    const hasRequire = databaseUrl.includes('sslmode=require');
+    if (hasRequire || process.env.NODE_ENV === 'production') {
+      return { rejectUnauthorized: false };
+    }
+    return false;
+  } catch {
+    return false;
+  }
+})();
 let pool = null;
 if (databaseUrl) {
 
