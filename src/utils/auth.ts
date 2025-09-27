@@ -4,7 +4,7 @@ export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; err
 const rawApiBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
 export const apiBase: string = rawApiBase ? rawApiBase.replace(/\/$/, '') : '';
 
-async function tryFetch(url: string, opts: RequestInit) {
+export async function tryFetch(url: string, opts: RequestInit) {
   try {
     const res = await fetch(url, opts);
     return res;
