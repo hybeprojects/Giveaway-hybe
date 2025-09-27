@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
@@ -14,17 +14,10 @@ import PageTransition from './components/PageTransition';
 import OnboardingModal from './components/OnboardingModal';
 
 function Landing() {
-  const [isModalOpen, setModalOpen] = useState(false);
-  const MODAL_KEY = 'onboard_v1';
-
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem(MODAL_KEY)) setModalOpen(true);
-    } catch {}
-  }, []);
-
+  const [isModalOpen, setModalOpen] = useState(true);
+  
+  
   const handleCloseModal = () => {
-    try { localStorage.setItem(MODAL_KEY, 'true'); } catch {}
     setModalOpen(false);
   };
 
