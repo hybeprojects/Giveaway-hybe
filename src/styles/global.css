@@ -6,7 +6,7 @@ img, video { display: block; max-width: 100%; height: auto; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 700px) { .form-row { grid-template-columns: 1fr; } }
 .progress-outer { height: 10px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
-.progress-inner { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); width: 0%; transition: width .4s ease; }
+.progress-inner { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); width: var(--progress-pct, 0%); transition: width .4s ease; }
 .scroll-reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
 .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
 .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.18), rgba(255,255,255,0.08)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
