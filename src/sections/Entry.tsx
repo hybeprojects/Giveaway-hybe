@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
 import { getNumber, setNumber, getString, setString } from '../utils/storage';
 import { useToast } from '../components/Toast';
-import InviteModal from '../components/InviteModal';
-
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
 function burstConfetti() {
@@ -31,7 +29,6 @@ export default function Entry() {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const toast = useToast();
   const lastMilestone = useRef<number>(0);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
@@ -76,12 +73,11 @@ export default function Entry() {
     } catch {}
   };
 
-  const handleInvite = (friendEmail: string) => {
-    if (friendEmail && validateEmail(friendEmail)) {
+  const inviteFriend = async () => {
+    const friend = prompt('Enter your friend\'s email to send an invite:');
+    if (friend && validateEmail(friend)) {
       setInvite(v => v + 5);
       toast.success('Invite sent! +5 entries');
-    } else {
-      toast.error('Please enter a valid email address.');
     }
   };
 
@@ -99,32 +95,32 @@ export default function Entry() {
   }, [total]);
 
   return (
-    <section id="enter" className="section" aria-label="Entry">
+    <section id="enter" className="section entry-section" aria-label="Entry">
       <div className="container">
-        <h2 className="section-title">Enter the Giveaway</h2>
-        <p className="subtle">Complete the form and boost your odds with shares and invites.</p>
-        <form className="card card-pad mt-12" onSubmit={submit}>
+        <h2 className="section-title">Join the Ultimate Giveaway</h2>
+        <p className="section-subtitle">Complete the form to enter and boost your chances by sharing with friends.</p>
+        <form className="entry-form" onSubmit={submit}>
           {!sent ? (
-            <div>
-              <label className="label">Email</label>
+            <div className="form-step">
+              <label className="label">Enter Your Email Address</label>
               <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
-              <div className="button-row mt-14">
-                <button className="button-primary" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send 6‑digit code'}</button>
-                <a className="button-secondary" href="/login">Login / Dashboard</a>
+              <div className="button-row">
+                <button className="button-primary" type="submit" disabled={loading}>{loading ? 'Sending Code...' : 'Send Verification Code'}</button>
+                <a className="button-secondary" href="/login">Login to Dashboard</a>
               </div>
-              <p className="subtle mt-8">We’ll send a one-time 6‑digit code (expires in 10 minutes).</p>
+              <p className="form-note">A 6-digit code will be sent to your email for verification.</p>
             </div>
           ) : (
-            <div>
+            <div className="form-step">
               <div className="form-row">
                 <div>
-                  <label className="label">Name</label>
-                  <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
+                  <label className="label">Full Name</label>
+                  <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
                 </div>
                 <div>
-                  <label className="label">Country</label>
+                  <label className="label">Country of Residence</label>
                   <select className="input" value={country} onChange={e => setCountry(e.target.value)}>
-                    <option value="">Select country</option>
+                    <option value="">Select your country</option>
                     <option>United States</option>
                     <option>Canada</option>
                     <option>United Kingdom</option>
@@ -135,15 +131,15 @@ export default function Entry() {
                   </select>
                 </div>
               </div>
-              <div className="mt-12">
-                <label className="label">Enter 6‑digit code</label>
-                <input className="input" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="000000" />
+              <div className="form-group">
+                <label className="label">Verification Code</label>
+                <input className="input" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="123456" />
               </div>
-              <div className="button-row mt-14">
+              <div className="button-row">
                 <button type="button" className="button-primary" onClick={async () => {
                   if (!name.trim()) { toast.error('Name is required'); return; }
                   if (!country) { toast.error('Select a country'); return; }
-                  if (code.length !== 6) { toast.error('Enter the 6‑digit code'); return; }
+                  if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
                   setLoading(true);
                   try {
                     const supa = await import('../utils/supabaseClient');
@@ -173,31 +169,26 @@ export default function Entry() {
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
                   } finally { setLoading(false); }
-                }}>Verify & Submit Entry</button>
-                <button type="button" className="button-secondary" onClick={() => { setSent(false); }}>Change email</button>
+                }}>Verify & Submit</button>
+                <button type="button" className="button-secondary" onClick={() => { setSent(false); }}>Change Email</button>
               </div>
             </div>
           )}
 
-          <div className="card card-pad mt-14">
-            <strong>Gamified Extra Entries</strong>
-            <p className="subtle">Share on social = +3 entries • Invite a friend = +5 entries</p>
+          <div className="gamify-box mt-14">
+            <h3>Boost Your Entries</h3>
+            <p className="subtle">Share on social media for +3 entries, and invite a friend for +5 entries.</p>
             <div className="button-row">
-              <button type="button" className="button-secondary" onClick={shareNow}>Share Now</button>
-              <button type="button" className="button-secondary" onClick={() => setInviteModalOpen(true)}>Invite a Friend</button>
+              <button type="button" className="button-secondary" onClick={shareNow}>Share on Social</button>
+              <button type="button" className="button-secondary" onClick={inviteFriend}>Invite a Friend</button>
             </div>
             <div className="mt-10">
               <ProgressBar value={total} max={20} />
-              <div className="subtle mt-6">{total} entries earned</div>
+              <div className="subtle mt-6">Total Entries: {total}</div>
             </div>
           </div>
         </form>
       </div>
-      <InviteModal
-        isOpen={isInviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-        onInvite={handleInvite}
-      />
     </section>
   );
 }
