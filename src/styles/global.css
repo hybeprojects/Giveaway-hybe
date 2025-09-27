@@ -75,6 +75,8 @@ img, video { display: block; max-width: 100%; height: auto; }
 .footer-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .prize-card-body { padding: 16px; }
 .prize-title { margin: 4px 0 8px; }
+.m-0 { margin: 0; }
+.nav-chip { border-color: rgba(255,255,255,0.2); }
 
 /* Toasts */
 .toast-stack { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 10px; z-index: 60; }
