@@ -484,12 +484,33 @@ app.get('/smtp-verify', async (req, res) => {
     if (!adminToken || req.headers['x-admin-token'] !== adminToken) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
+
     const conf = getSmtpConfig();
-    if (!conf || !transport) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
+    if (!conf || !transport) {
+      return res.status(400).json({ ok: false, error: 'SMTP is not configured on the server.' });
+    }
+
+    // The 'transport' object is already created and verified once on server start.
+    // We re-verify it here to provide an on-demand check.
     await transport.verify();
-    return res.json({ ok: true, host: conf.host, port: conf.port, secure: conf.secure });
+
+    // If verify() succeeds, the connection is valid.
+    return res.json({
+      ok: true,
+      message: 'SMTP connection verified successfully.',
+      host: conf.host,
+      port: conf.port,
+      secure: conf.secure,
+      user: conf.user,
+    });
+
   } catch (e) {
-    return res.status(500).json({ ok: false, error: e?.message || 'Verify failed' });
+    // If verify() fails, it throws an error.
+    return res.status(500).json({
+      ok: false,
+      error: 'SMTP verification failed.',
+      details: e?.message || 'No further details available.'
+    });
   }
 });
 

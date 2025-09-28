@@ -10,6 +10,7 @@ import LiveUpdates from './sections/LiveUpdates';
 import Footer from './sections/Footer';
 import Login from './sections/Login';
 import Dashboard from './sections/Dashboard';
+import SmtpTest from './sections/SmtpTest';
 import PageTransition from './components/PageTransition';
 import OnboardingModal from './components/OnboardingModal';
 
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
       <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
       <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+      <Route path="/smtp-test" element={<PageTransition><SmtpTest /></PageTransition>} />
       <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
     </Routes>
   );
