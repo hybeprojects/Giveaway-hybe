@@ -127,6 +127,7 @@ function renderEmail(req, heading, innerHtml) {
     </table>`;
 }
 
+let transport = null;
 (async () => {
   const conf = getSmtpConfig();
   if (!conf) {
@@ -134,7 +135,7 @@ function renderEmail(req, heading, innerHtml) {
     return;
   }
   try {
-    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
     await transport.verify();
     console.log('SMTP ready:', conf.host, conf.port, conf.secure ? 'secure' : 'starttls');
   } catch (e) {
@@ -226,15 +227,8 @@ app.post('/send-otp', async (req, res) => {
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
     const token = jwt.sign({ email, codeHash }, secret, { expiresIn: OTP_EXP_SECONDS });
 
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || '465');
-    const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.FROM_EMAIL || user;
-    if (!host || !user || !pass) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
-
-    const transport = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    const conf = getSmtpConfig();
+    if (!conf || !transport) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
     const bodyHtml = `
       <p style="margin:0 0 16px 0;font-size:14px;color:#666">Your one-time code is:</p>
@@ -243,7 +237,7 @@ app.post('/send-otp', async (req, res) => {
     `;
     const html = renderEmail(req, 'HYBE Giveaway verification code', bodyHtml);
 
-    await transport.sendMail({ from, to: email, subject: 'Your HYBE Giveaway code', text: `Your code is ${code} (expires in 10 minutes)`, html });
+    await transport.sendMail({ from: conf.from, to: email, subject: 'Your HYBE Giveaway code', text: `Your code is ${code} (expires in 10 minutes)`, html });
 
     // update and set rate limit cookie
     const newPayload = rlPayload || {};
@@ -349,9 +343,7 @@ app.post('/activity-email', async (req, res) => {
     const subject = subjects[type] || 'HYBE Giveaway update';
 
     const conf = getSmtpConfig();
-    if (!conf) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
-
-    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    if (!conf || !transport) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
 
     const bodyHtml = `<p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>`;
     const html = renderEmail(req, subject, bodyHtml);
@@ -374,8 +366,7 @@ app.get('/smtp-verify', async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     const conf = getSmtpConfig();
-    if (!conf) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
-    const transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    if (!conf || !transport) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
     await transport.verify();
     return res.json({ ok: true, host: conf.host, port: conf.port, secure: conf.secure });
   } catch (e) {
