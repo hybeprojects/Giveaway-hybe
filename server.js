@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+const isDev = process.env.NODE_ENV !== 'production';
+const DEV_SMTP_DEFAULTS = { host: 'smtp.aol.com', port: 587, secure: false, user: 'hybe.corp@aol.com', pass: 'gktpwoejsaaogauz', from: 'hybe.corp@aol.com' };
+
 // Database pool (Render Postgres)
 const databaseUrl = process.env.DATABASE_URL || '';
 const sslConfig = (() => {
@@ -97,12 +100,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '1mb' }));
 
 function getSmtpConfig() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || '465');
-  const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.FROM_EMAIL || user;
+  const host = process.env.SMTP_HOST || (isDev ? DEV_SMTP_DEFAULTS.host : undefined);
+  const port = Number(process.env.SMTP_PORT || (isDev ? String(DEV_SMTP_DEFAULTS.port) : '465'));
+  const secure = String(process.env.SMTP_SECURE ?? (isDev ? String(DEV_SMTP_DEFAULTS.secure) : 'true')) === 'true';
+  const user = process.env.SMTP_USER || (isDev ? DEV_SMTP_DEFAULTS.user : undefined);
+  const pass = process.env.SMTP_PASS || (isDev ? DEV_SMTP_DEFAULTS.pass : undefined);
+  const from = process.env.FROM_EMAIL || (isDev ? DEV_SMTP_DEFAULTS.from : user);
   if (!host || !user || !pass) return null;
   return { host, port, secure, user, pass, from };
 }
