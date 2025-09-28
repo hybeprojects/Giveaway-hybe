@@ -19,9 +19,8 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onSuccess }) => {
     }
     setLoading(true);
     try {
-      const { apiBase } = await import('../utils/auth');
       const sessionToken = localStorage.getItem('local_session') || '';
-      const res = await fetch(`${apiBase}/confirm-details`, {
+      const res = await fetch(`/.netlify/functions/confirm-details`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
         body: JSON.stringify({ shipping_address: address }),

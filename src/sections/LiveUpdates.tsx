@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Countdown from '../components/Countdown';
-import { apiBase, tryFetch } from '../utils/auth';
+import { tryFetch } from '../utils/auth';
 
 function useAnimatedCount(start: number) {
   const [n, setN] = useState(start);
@@ -28,23 +28,15 @@ export default function LiveUpdates() {
   useEffect(() => {
     let active = true;
     const fetchEvents = async () => {
-      const urls = [`${apiBase}/events`, '/events'];
-      for (const url of urls) {
-        try {
-          const res = await tryFetch(url, { method: 'GET' });
-          if (res && res.ok) {
-            const data = await res.json();
-            if (active) setFeed(data);
-            return;
-          }
-        } catch {}
-      }
-      if (active && feed === null) {
-        setFeed([
-          { text: 'A. Kim boosted odds', created_at: new Date().toISOString() },
-          { text: 'J. Park entered', created_at: new Date().toISOString() },
-          { text: 'S. Lee invited 3 friends', created_at: new Date().toISOString() }
-        ]);
+      const url = '/.netlify/functions/get-events';
+      try {
+        const res = await tryFetch(url, { method: 'GET' });
+        if (res && res.ok) {
+          const data = await res.json();
+          if (active) setFeed(data);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch events', e);
       }
     };
     fetchEvents();
