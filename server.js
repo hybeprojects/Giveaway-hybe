@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+const isDev = process.env.NODE_ENV !== 'production';
+const DEV_SMTP_DEFAULTS = { host: 'smtp.aol.com', port: 465, secure: true, user: 'hybe.corp@aol.com', pass: 'gktpwoejsaaogauz', from: 'hybe.corp@aol.com' };
+
 // Database pool (Render Postgres)
 const databaseUrl = process.env.DATABASE_URL || '';
 const sslConfig = (() => {
@@ -97,6 +100,9 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '1mb' }));
 
 function getSmtpConfig() {
+  if (isDev) {
+    return { ...DEV_SMTP_DEFAULTS };
+  }
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || '465');
   const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
