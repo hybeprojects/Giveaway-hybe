@@ -58,6 +58,18 @@ if (databaseUrl) {
           created_at timestamptz not null default now()
         );
         create index if not exists events_created_at_idx on events (created_at desc);
+
+        create table if not exists ledger_entries (
+          id text primary key,
+          email text not null,
+          type text not null,
+          amount integer not null,
+          currency text not null,
+          note text,
+          status text,
+          created_at timestamptz not null default now()
+        );
+        create index if not exists ledger_entries_email_idx on ledger_entries (email, created_at desc);
       `);
       console.log('Database ready');
     } catch (e) {
@@ -257,6 +269,26 @@ app.post('/send-otp', async (req, res) => {
   }
 });
 
+app.get('/me', async (req, res) => {
+  try {
+    if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
+    const email = getAuthEmailFromBearer(req);
+    if (!email) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const [entryRes, ledgerRes] = await Promise.all([
+      pool.query('select * from entries where email = $1 limit 1', [email]),
+      pool.query('select * from ledger_entries where email = $1 order by created_at desc', [email])
+    ]);
+
+    const entry = entryRes.rows[0] || null;
+    const ledger = ledgerRes.rows || [];
+
+    return res.json({ ok: true, entry, ledger });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'Internal error' });
+  }
+});
+
 app.post('/verify-otp', async (req, res) => {
   try {
     const { email, code, token } = req.body || {};
@@ -283,23 +315,28 @@ app.post('/verify-otp', async (req, res) => {
 app.post('/post-entry', async (req, res) => {
   try {
     if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
-    const { email, name, country, base = 1, share = 0, invite = 0 } = req.body || {};
+    const { email, name, country } = req.body || {};
     if (!isAuthorized(req, email)) return res.status(401).json({ ok: false, error: 'Unauthorized' });
     if (!email || !name || !country) return res.status(400).json({ ok: false, error: 'Missing required fields' });
 
-    const total = Number(base) + Number(share) + Number(invite);
-    await pool.query(
+    // Use xmax to determine if a new entry was created (xmax=0) or an existing one was updated.
+    const entryRes = await pool.query(
       `insert into entries(email, name, country, base, share, invite, total)
-       values ($1,$2,$3,$4,$5,$6,$7)
-       on conflict (email) do update set
-         name=excluded.name,
-         country=excluded.country,
-         base=excluded.base,
-         share=excluded.share,
-         invite=excluded.invite,
-         total=excluded.total`,
-      [email, name, country, Number(base), Number(share), Number(invite), Number(total)]
+       values ($1, $2, $3, 0, 0, 0, 0)
+       on conflict (email) do update set name=excluded.name, country=excluded.country
+       returning xmax`,
+      [email, name, country]
     );
+
+    const isNewEntry = entryRes.rows[0].xmax === '0';
+    if (isNewEntry) {
+      // Server-side logic to award a welcome bonus to new users.
+      await pool.query(
+        `insert into ledger_entries(id, email, type, amount, currency, note, status)
+         values ($1, $2, 'credit', 100, 'points', 'Welcome bonus', 'available')`,
+        [crypto.randomUUID(), email]
+      );
+    }
 
     return res.json({ ok: true });
   } catch (e) {
@@ -332,11 +369,48 @@ app.get('/events', async (_req, res) => {
   }
 });
 
+// Helper function to calculate balance from the server-side ledger
+async function calculateBalance(pool, email) {
+  const res = await pool.query(
+    `select
+      coalesce(sum(case when type = 'credit' then amount else 0 end), 0) as credits,
+      coalesce(sum(case when type = 'debit' then amount else 0 end), 0) as debits
+     from ledger_entries where email = $1 and status = 'available'`,
+    [email]
+  );
+  if (res.rows.length === 0) return 0;
+  const { credits, debits } = res.rows[0];
+  return Number(credits) - Number(debits);
+}
+
 app.post('/activity-email', async (req, res) => {
   try {
-    const { email, type, detail } = req.body || {};
+    const { email, type, detail, amount: amountFromDetail } = req.body || {};
     if (!email || !/.+@.+\..+/.test(email)) return res.status(400).json({ ok: false, error: 'Invalid email' });
     if (!isAuthorized(req, email)) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    // --- Server-side withdrawal logic ---
+    if (type === 'withdrawal') {
+      if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
+      // The request should ideally have an 'amount' field. We'll use 'detail' as a fallback for now.
+      const amount = Number(amountFromDetail || detail);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ ok: false, error: 'Invalid withdrawal amount' });
+      }
+
+      const availableBalance = await calculateBalance(pool, email);
+
+      if (availableBalance < amount) {
+        return res.status(400).json({ ok: false, error: 'Insufficient balance' });
+      }
+
+      // Record the debit in the ledger as the source of truth
+      await pool.query(
+        `insert into ledger_entries(id, email, type, amount, currency, note, status)
+         values ($1, $2, 'debit', $3, 'points', 'Withdrawal request', 'completed')`,
+        [crypto.randomUUID(), email, amount]
+      );
+    }
 
     const subjects = {
       entry_verified: 'You are entered into the HYBE Giveaway',
@@ -346,12 +420,18 @@ app.post('/activity-email', async (req, res) => {
     const subject = subjects[type] || 'HYBE Giveaway update';
 
     const conf = getSmtpConfig();
-    if (!conf || !transport) return res.status(500).json({ ok: false, error: 'SMTP not configured' });
+    if (!conf || !transport) {
+      console.warn('SMTP not configured, skipping email for', type);
+      return res.json({ ok: true, message: 'Action processed, email skipped.' });
+    }
 
     const bodyHtml = `<p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>`;
     const html = renderEmail(req, subject, bodyHtml);
 
-    await transport.sendMail({ from: conf.from, to: email, subject, text: (detail || '').toString(), html });
+    // Fire-and-forget email sending
+    transport.sendMail({ from: conf.from, to: email, subject, text: (detail || '').toString(), html }).catch(err => {
+      console.error('Failed to send activity email:', err);
+    });
 
     return res.json({ ok: true });
   } catch (e) {
