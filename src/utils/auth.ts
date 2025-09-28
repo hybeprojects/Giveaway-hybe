@@ -17,9 +17,6 @@ export type UserEntry = {
 export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; created_at: string; status?: 'pending' | 'available' };
 export type GetMeResponse = { ok: true; entry: UserEntry; ledger: LedgerEntry[] } | { ok: false; error: string };
 
-const rawApiBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-export const apiBase: string = rawApiBase ? rawApiBase.replace(/\/$/, '') : '';
-
 export async function tryFetch(url: string, opts: RequestInit) {
   try {
     const res = await fetch(url, opts);
@@ -53,15 +50,9 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
 
 export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
   const body = JSON.stringify({ email, purpose });
-  const primary = `${apiBase}/send-otp`;
-  const fallback = '/send-otp';
+  const endpoint = '/.netlify/functions/send-otp';
 
-  let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
-
-  if (!res || !res.ok) {
-    // attempt fallback to local functions path
-    res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
-  }
+  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
 
   const data = await parseJsonOrThrow(res, 'Failed to send code');
   const typed = data as SendOtpResponse;
@@ -71,14 +62,9 @@ export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'l
 
 export async function verifyOtp(email: string, code: string, token: string): Promise<string> {
   const body = JSON.stringify({ email, code, token });
-  const primary = `${apiBase}/verify-otp`;
-  const fallback = '/verify-otp';
+  const endpoint = '/.netlify/functions/verify-otp';
 
-  let res = await tryFetch(primary, { method: 'POST', headers: buildHeaders(), body });
-
-  if (!res || !res.ok) {
-    res = await tryFetch(fallback, { method: 'POST', headers: buildHeaders(), body });
-  }
+  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
 
   const data = await parseJsonOrThrow(res, 'Verification failed');
   const typed = data as VerifyOtpResponse;
@@ -111,13 +97,9 @@ export async function getMe(): Promise<GetMeResponse> {
   if (!sessionToken) return { ok: false, error: 'Not logged in' };
 
   const headers = { 'Authorization': `Bearer ${sessionToken}` };
-  const primary = `${apiBase}/me`;
-  const fallback = '/me';
+  const endpoint = '/.netlify/functions/get-me';
 
-  let res = await tryFetch(primary, { method: 'GET', headers });
-  if (!res) {
-    res = await tryFetch(fallback, { method: 'GET', headers });
-  }
+  const res = await tryFetch(endpoint, { method: 'GET', headers });
 
   const data = await parseJsonOrThrow(res, 'Failed to load user data');
   return data as GetMeResponse;

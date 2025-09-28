@@ -142,13 +142,12 @@ export default function Entry() {
                     const session = await auth.verifyOtp(email, code, token);
                     auth.saveLocalSession(session);
                     try {
-                      const { apiBase } = await import('../utils/auth');
                       const sessionToken = localStorage.getItem('local_session') || '';
-                      await fetch(`${apiBase}/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
-                      await fetch(`${apiBase}/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
-                    } catch {}
+                      await fetch(`/.netlify/functions/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                      await fetch(`/.netlify/functions/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
+                    } catch (e) { console.warn('Failed to post entry/event', e); }
                     setBase(1);
-                    try { const { apiBase } = await import('../utils/auth'); const sessionToken = localStorage.getItem('local_session') || ''; await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch {}
+                    try { const sessionToken = localStorage.getItem('local_session') || ''; await fetch(`/.netlify/functions/send-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch (e) { console.warn('Activity email failed to send', e); }
                     toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
