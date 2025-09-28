@@ -10,6 +10,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "dotenv": "^17.2.2",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.6",
