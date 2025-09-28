@@ -1,5 +1,8 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
+
+dotenv.config();
 import fs from 'fs';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
