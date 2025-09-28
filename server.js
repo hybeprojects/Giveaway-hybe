@@ -153,11 +153,22 @@ let transport = null;
     return;
   }
   try {
-    transport = nodemailer.createTransport({ host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000 });
+    const baseOpts = { host: conf.host, port: conf.port, secure: conf.secure, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000, family: 4 };
+    transport = nodemailer.createTransport(baseOpts);
     await transport.verify();
     console.log('SMTP ready:', conf.host, conf.port, conf.secure ? 'secure' : 'starttls');
   } catch (e) {
-    console.error('SMTP verify failed:', e?.message || e);
+    const msg = e?.message || '';
+    console.error('SMTP verify failed:', msg);
+    // Fallback: try STARTTLS on 587 if SSL:465 timed out or connection failed
+    try {
+      const fallback = { host: conf.host, port: 587, secure: false, auth: { user: conf.user, pass: conf.pass }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 10000, family: 4 };
+      transport = nodemailer.createTransport(fallback);
+      await transport.verify();
+      console.log('SMTP ready (fallback):', conf.host, 587, 'starttls');
+    } catch (e2) {
+      console.error('SMTP verify failed (fallback):', e2?.message || e2);
+    }
   }
 })();
 
