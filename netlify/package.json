@@ -1,0 +1,16 @@
+{
+  "name": "hybe-netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for the HYBE giveaway app.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.14",
+    "pg": "^8.12.0"
+  }
+}

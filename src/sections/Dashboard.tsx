@@ -94,9 +94,8 @@ export default function Dashboard() {
     const optimisticEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request (pending)', created_at: new Date().toISOString(), status: 'pending' };
     setLedger(prevLedger => [optimisticEntry, ...prevLedger]);
     try {
-      const { apiBase } = await import('../utils/auth');
       const sessionToken = localStorage.getItem('local_session') || '';
-      const res = await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email: entry?.email, type: 'withdrawal', detail: `Withdrawal requested: ${n.toFixed(2)} points`, amount: n }) });
+      const res = await fetch(`/.netlify/functions/activity-handler`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email: entry?.email, type: 'withdrawal', detail: `Withdrawal requested: ${n.toFixed(2)} points`, amount: n }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Withdrawal failed on the server.');
       toast.success('Withdrawal request successful');
