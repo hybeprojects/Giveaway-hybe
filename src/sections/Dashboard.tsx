@@ -2,6 +2,38 @@ import { useEffect, useMemo, useState } from 'react';
 import { getMe, clearLocalSession, LedgerEntry, UserEntry } from '../utils/auth';
 import { useToast } from '../components/Toast';
 
+// --- Helper Functions ---
+
+function groupLedgerByDate(ledger: LedgerEntry[]) {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const todayStr = today.toDateString();
+  const yesterdayStr = yesterday.toDateString();
+
+  const getDayString = (date: Date) => {
+    if (date.toDateString() === todayStr) return 'Today';
+    if (date.toDateString() === yesterdayStr) return 'Yesterday';
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  return ledger.reduce((acc, entry) => {
+    const day = getDayString(new Date(entry.created_at));
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(entry);
+    return acc;
+  }, {} as Record<string, LedgerEntry[]>);
+}
+
+function getTransactionIcon(note: string | null) {
+  const lowerNote = note?.toLowerCase() || '';
+  if (lowerNote.includes('welcome')) return '🎉';
+  if (lowerNote.includes('withdrawal')) return '💸';
+  if (lowerNote.includes('share')) return '🔗';
+  if (lowerNote.includes('follow')) return '❤️';
+  return '💰';
+}
+
 function calculateBalances(ledger: LedgerEntry[]) {
   const pending = ledger.filter(i => i.type === 'credit' && i.status === 'pending').reduce((s, i) => s + i.amount, 0);
   const availableCredits = ledger.filter(i => i.type === 'credit' && i.status === 'available').reduce((s, i) => s + i.amount, 0);
@@ -9,6 +41,8 @@ function calculateBalances(ledger: LedgerEntry[]) {
   const available = Math.max(0, availableCredits - debits);
   return { pending, available };
 }
+
+// --- Main Dashboard Component ---
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +52,7 @@ export default function Dashboard() {
   const toast = useToast();
 
   const bal = useMemo(() => calculateBalances(ledger), [ledger]);
+  const groupedLedger = useMemo(() => groupLedgerByDate(ledger), [ledger]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -27,7 +62,6 @@ export default function Dashboard() {
           setEntry(res.entry);
           setLedger(res.ledger);
         } else {
-          // If fetching fails (e.g., expired token), log out the user.
           clearLocalSession();
           window.location.href = '/login';
           setError(res.error);
@@ -48,20 +82,37 @@ export default function Dashboard() {
     if (!Number.isFinite(n) || n <= 0) { toast.error('Invalid amount'); return; }
     if (n > bal.available) { toast.error('Insufficient balance.'); return; }
 
+    const optimisticEntry: LedgerEntry = {
+      id: crypto.randomUUID(),
+      type: 'debit',
+      amount: n,
+      currency: 'points',
+      note: 'Withdrawal request (pending)',
+      created_at: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    setLedger(prevLedger => [optimisticEntry, ...prevLedger]);
+
     try {
       const { apiBase } = await import('../utils/auth');
       const sessionToken = localStorage.getItem('local_session') || '';
-      await fetch(`${apiBase}/activity-email`, {
+      const res = await fetch(`${apiBase}/activity-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
         body: JSON.stringify({ email: entry?.email, type: 'withdrawal', detail: `Withdrawal requested: ${n.toFixed(2)} points`, amount: n })
       });
-      toast.success('Withdrawal requested');
-      // Refresh data from server instead of reloading the page
-      const res = await getMe();
-      if (res.ok) setLedger(res.ledger);
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Withdrawal failed on the server.');
+
+      toast.success('Withdrawal request successful');
     } catch (e: any) {
       toast.error(e?.message || 'Withdrawal failed.');
+      setLedger(prevLedger => prevLedger.filter(item => item.id !== optimisticEntry.id));
+    } finally {
+      const res = await getMe();
+      if (res.ok) setLedger(res.ledger);
     }
   };
 
@@ -95,28 +146,64 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="two-col-grid">
-          <div className="card card-pad">
-            <h3>Balance</h3>
-            <div className="h1 mt-8">{bal.available.toFixed(2)} <span className="subtle" style={{ fontSize: 14 }}>points</span></div>
-            <div className="subtle mt-6">Pending: {bal.pending.toFixed(2)} points</div>
-            <div className="button-row mt-12">
-              <button className="button-primary" onClick={withdraw} disabled={bal.available <= 0}>Withdraw</button>
+        <div className="dashboard-grid">
+          <div className="dashboard-main">
+            <div className="card card-pad">
+              <h3>Recent activity</h3>
+              <div className="activity-feed">
+                {Object.keys(groupedLedger).length === 0 && <p className="subtle">No transactions yet</p>}
+                {Object.entries(groupedLedger).map(([day, entries]) => (
+                  <div key={day}>
+                    <p className="subtle text-bold mt-12 mb-8">{day}</p>
+                    <ul className="activity-list">
+                      {entries.map(l => (
+                        <li key={l.id}>
+                          <div className="activity-icon">{getTransactionIcon(l.note)}</div>
+                          <div className="activity-details">
+                            <p className="text-bold">{l.note}</p>
+                            <p className="subtle">{l.type === 'credit' ? '+' : '-'}{l.amount.toFixed(2)} {l.currency}</p>
+                          </div>
+                          <StatusBadge status={l.status || 'available'} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="card card-pad">
-            <h3>Recent activity</h3>
-            <ul>
-              {ledger.length === 0 && <li className="subtle">No transactions yet</li>}
-              {ledger.map(l => (
-                <li key={l.id} className="subtle">
-                  {l.type === 'credit' ? '+' : '-'}{l.amount.toFixed(2)} {l.currency} — {l.note} <span className="dim">({new Date(l.created_at).toLocaleString()}{l.status ? ` · ${l.status}` : ''})</span>
-                </li>
-              ))}
-            </ul>
+          <div className="dashboard-sidebar">
+            <div className="card card-pad mb-16">
+              <h3>Balance</h3>
+              <div className="h1 mt-8">{bal.available.toFixed(2)} <span className="subtle" style={{ fontSize: 14 }}>points</span></div>
+              <div className="subtle mt-6">Pending: {bal.pending.toFixed(2)} points</div>
+              <div className="button-row mt-12">
+                <button className="button-primary" onClick={withdraw} disabled={bal.available <= 0}>Withdraw</button>
+              </div>
+            </div>
+            <div className="card card-pad">
+              <h3>Ways to Earn</h3>
+              <ul className="ways-to-earn">
+                <li><a href="#">🔗 Share on X <span className="points">+50</span></a></li>
+                <li><a href="#">❤️ Follow on Instagram <span className="points">+50</span></a></li>
+                <li><a href="#">👍 Like on Facebook <span className="points">+50</span></a></li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+// --- Sub-components ---
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, React.CSSProperties> = {
+    pending: { backgroundColor: 'var(--color-warn-light)', color: 'var(--color-warn-dark)' },
+    available: { backgroundColor: 'var(--color-success-light)', color: 'var(--color-success-dark)' },
+    completed: { backgroundColor: 'var(--color-info-light)', color: 'var(--color-info-dark)' },
+  };
+  const style = styles[status] || styles.available;
+  return <span className="status-badge" style={style}>{status}</span>;
 }
