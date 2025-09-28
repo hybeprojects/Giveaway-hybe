@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { getMe, clearLocalSession, LedgerEntry, UserEntry } from '../utils/auth';
 import { useToast } from '../components/Toast';
 import WinnerWelcomeModal from '../components/WinnerWelcomeModal';
@@ -179,15 +178,6 @@ export default function Dashboard() {
                 <button className="button-primary" onClick={withdraw} disabled={bal.available <= 0}>Withdraw</button>
               </div>
             </div>
-
-            {localStorage.getItem('admin_token') && (
-              <div className="card card-pad mb-16">
-                <h3>Admin Tools</h3>
-                <ul className="ways-to-earn">
-                  <li><Link to="/smtp-test">SMTP Test Page</Link></li>
-                </ul>
-              </div>
-            )}
 
             {entry?.is_winner ? (
               <PrizeRoadmap user={entry} onDataRefresh={fetchDashboardData} />
