@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMe, clearLocalSession, LedgerEntry, UserEntry } from '../utils/auth';
 import { useToast } from '../components/Toast';
+import WinnerWelcomeModal from '../components/WinnerWelcomeModal';
+import PrizeRoadmap from '../components/PrizeRoadmap';
 
-// --- Helper Functions ---
-
+// --- Helper Functions (omitted for brevity, no changes) ---
 function groupLedgerByDate(ledger: LedgerEntry[]) {
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const todayStr = today.toDateString();
   const yesterdayStr = yesterday.toDateString();
-
   const getDayString = (date: Date) => {
     if (date.toDateString() === todayStr) return 'Today';
     if (date.toDateString() === yesterdayStr) return 'Yesterday';
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   };
-
   return ledger.reduce((acc, entry) => {
     const day = getDayString(new Date(entry.created_at));
     if (!acc[day]) acc[day] = [];
@@ -24,7 +23,6 @@ function groupLedgerByDate(ledger: LedgerEntry[]) {
     return acc;
   }, {} as Record<string, LedgerEntry[]>);
 }
-
 function getTransactionIcon(note: string | null) {
   const lowerNote = note?.toLowerCase() || '';
   if (lowerNote.includes('welcome')) return '🎉';
@@ -33,7 +31,6 @@ function getTransactionIcon(note: string | null) {
   if (lowerNote.includes('follow')) return '❤️';
   return '💰';
 }
-
 function calculateBalances(ledger: LedgerEntry[]) {
   const pending = ledger.filter(i => i.type === 'credit' && i.status === 'pending').reduce((s, i) => s + i.amount, 0);
   const availableCredits = ledger.filter(i => i.type === 'credit' && i.status === 'available').reduce((s, i) => s + i.amount, 0);
@@ -49,70 +46,65 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [entry, setEntry] = useState<UserEntry | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [isWinnerModalOpen, setWinnerModalOpen] = useState(false);
   const toast = useToast();
 
   const bal = useMemo(() => calculateBalances(ledger), [ledger]);
   const groupedLedger = useMemo(() => groupLedgerByDate(ledger), [ledger]);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const res = await getMe();
-        if (res.ok) {
-          setEntry(res.entry);
-          setLedger(res.ledger);
-        } else {
-          clearLocalSession();
-          window.location.href = '/login';
-          setError(res.error);
-        }
-      } catch (e: any) {
-        setError(e?.message || 'An unknown error occurred.');
-      } finally {
-        setLoading(false);
+  const fetchDashboardData = async () => {
+    try {
+      const res = await getMe();
+      if (res.ok) {
+        setEntry(res.entry);
+        setLedger(res.ledger);
+        return res.entry;
+      } else {
+        clearLocalSession();
+        window.location.href = '/login';
+        setError(res.error);
+        return null;
       }
+    } catch (e: any) {
+      setError(e?.message || 'An unknown error occurred.');
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const initialLoad = async () => {
+      setLoading(true);
+      const userEntry = await fetchDashboardData();
+      if (userEntry?.is_winner && sessionStorage.getItem('winnerModalShown') !== 'true') {
+        setWinnerModalOpen(true);
+        sessionStorage.setItem('winnerModalShown', 'true');
+      }
+      setLoading(false);
     };
-    fetchDashboardData();
+    initialLoad();
   }, []);
 
   const withdraw = async () => {
+    // ... (omitting for brevity, no changes here)
     const amount = prompt('Enter amount to withdraw (available: ' + bal.available.toFixed(2) + '):');
     if (!amount) return;
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) { toast.error('Invalid amount'); return; }
     if (n > bal.available) { toast.error('Insufficient balance.'); return; }
-
-    const optimisticEntry: LedgerEntry = {
-      id: crypto.randomUUID(),
-      type: 'debit',
-      amount: n,
-      currency: 'points',
-      note: 'Withdrawal request (pending)',
-      created_at: new Date().toISOString(),
-      status: 'pending'
-    };
-
+    const optimisticEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request (pending)', created_at: new Date().toISOString(), status: 'pending' };
     setLedger(prevLedger => [optimisticEntry, ...prevLedger]);
-
     try {
       const { apiBase } = await import('../utils/auth');
       const sessionToken = localStorage.getItem('local_session') || '';
-      const res = await fetch(`${apiBase}/activity-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
-        body: JSON.stringify({ email: entry?.email, type: 'withdrawal', detail: `Withdrawal requested: ${n.toFixed(2)} points`, amount: n })
-      });
-
+      const res = await fetch(`${apiBase}/activity-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email: entry?.email, type: 'withdrawal', detail: `Withdrawal requested: ${n.toFixed(2)} points`, amount: n }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Withdrawal failed on the server.');
-
       toast.success('Withdrawal request successful');
     } catch (e: any) {
       toast.error(e?.message || 'Withdrawal failed.');
       setLedger(prevLedger => prevLedger.filter(item => item.id !== optimisticEntry.id));
     } finally {
-      const res = await getMe();
-      if (res.ok) setLedger(res.ledger);
+      fetchDashboardData();
     }
   };
 
@@ -130,6 +122,11 @@ export default function Dashboard() {
 
   return (
     <section className="section" aria-label="Dashboard">
+      <WinnerWelcomeModal
+        isOpen={isWinnerModalOpen}
+        onClose={() => setWinnerModalOpen(false)}
+        prizeDetails={entry?.prize_details || 'a fantastic prize!'}
+      />
       <div className="container">
         <div className="card card-pad mb-16">
           <div className="row-between">
@@ -181,22 +178,25 @@ export default function Dashboard() {
                 <button className="button-primary" onClick={withdraw} disabled={bal.available <= 0}>Withdraw</button>
               </div>
             </div>
-            <div className="card card-pad">
-              <h3>Ways to Earn</h3>
-              <ul className="ways-to-earn">
-                <li><a href="#">🔗 Share on X <span className="points">+50</span></a></li>
-                <li><a href="#">❤️ Follow on Instagram <span className="points">+50</span></a></li>
-                <li><a href="#">👍 Like on Facebook <span className="points">+50</span></a></li>
-              </ul>
-            </div>
+
+            {entry?.is_winner ? (
+              <PrizeRoadmap user={entry} onDataRefresh={fetchDashboardData} />
+            ) : (
+              <div className="card card-pad">
+                <h3>Ways to Earn</h3>
+                <ul className="ways-to-earn">
+                  <li><a href="#">🔗 Share on X <span className="points">+50</span></a></li>
+                  <li><a href="#">❤️ Follow on Instagram <span className="points">+50</span></a></li>
+                  <li><a href="#">👍 Like on Facebook <span className="points">+50</span></a></li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </section>
   );
 }
-
-// --- Sub-components ---
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, React.CSSProperties> = {

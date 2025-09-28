@@ -1,7 +1,19 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
-export type UserEntry = { email: string; name: string; country: string; base: number; share: number; invite: number; total: number; created_at: string; };
+export type UserEntry = {
+  email: string;
+  name: string;
+  country: string;
+  base: number;
+  share: number;
+  invite: number;
+  total: number;
+  created_at: string;
+  is_winner?: boolean;
+  prize_details?: string | null;
+  shipping_address?: string | null;
+};
 export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; createdAt: string; status?: 'pending' | 'available' };
 export type GetMeResponse = { ok: true; entry: UserEntry; ledger: LedgerEntry[] } | { ok: false; error: string };
 
