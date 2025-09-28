@@ -487,10 +487,63 @@ html { box-sizing: border-box; }
   margin: 0;
   line-height: 1.4;
 }
+
+.shipping-form {
+  margin-top: 1rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
 .status-badge {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+}
+
+/* --- Prize Roadmap --- */
+.roadmap {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0 0;
+  position: relative;
+}
+.roadmap::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  bottom: 10px;
+  width: 2px;
+  background-color: #eee;
+}
+.roadmap li {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  margin-bottom: 16px;
+}
+.roadmap-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--hybe-white);
+  border: 2px solid #eee;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.roadmap li.complete .roadmap-marker {
+  background-color: var(--color-success-light);
+  border-color: var(--color-success-dark);
+}
+.roadmap li.complete .roadmap-marker::after {
+  content: '✔';
+  color: var(--color-success-dark);
+  font-size: 14px;
+}
+.roadmap-content p {
+  margin: 0;
+  line-height: 1.4;
 }

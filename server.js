@@ -48,6 +48,9 @@ if (databaseUrl) {
           share integer not null default 0,
           invite integer not null default 0,
           total integer not null default 1,
+          is_winner boolean not null default false,
+          prize_details text,
+          shipping_address text,
           created_at timestamptz not null default now()
         );
         create table if not exists events (
@@ -337,6 +340,28 @@ app.post('/post-entry', async (req, res) => {
         [crypto.randomUUID(), email]
       );
     }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || 'Internal error' });
+  }
+});
+
+app.post('/confirm-details', async (req, res) => {
+  try {
+    if (!pool) return res.status(500).json({ ok: false, error: 'Database not configured' });
+    const email = getAuthEmailFromBearer(req);
+    if (!email) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+    const { shipping_address } = req.body;
+    if (!shipping_address || typeof shipping_address !== 'string' || shipping_address.trim().length < 10) {
+      return res.status(400).json({ ok: false, error: 'Invalid shipping address provided.' });
+    }
+
+    await pool.query(
+      'update entries set shipping_address = $1 where email = $2',
+      [shipping_address, email]
+    );
 
     return res.json({ ok: true });
   } catch (e) {
