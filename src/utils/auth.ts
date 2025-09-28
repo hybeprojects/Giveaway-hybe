@@ -1,6 +1,10 @@
 export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
 
+export type UserEntry = { email: string; name: string; country: string; base: number; share: number; invite: number; total: number; created_at: string; };
+export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; createdAt: string; status?: 'pending' | 'available' };
+export type GetMeResponse = { ok: true; entry: UserEntry; ledger: LedgerEntry[] } | { ok: false; error: string };
+
 const rawApiBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
 export const apiBase: string = rawApiBase ? rawApiBase.replace(/\/$/, '') : '';
 
@@ -89,3 +93,20 @@ export function getLocalSession(): { email: string } | null {
 }
 
 export function clearLocalSession() { localStorage.removeItem('local_session'); }
+
+export async function getMe(): Promise<GetMeResponse> {
+  const sessionToken = localStorage.getItem('local_session') || '';
+  if (!sessionToken) return { ok: false, error: 'Not logged in' };
+
+  const headers = { 'Authorization': `Bearer ${sessionToken}` };
+  const primary = `${apiBase}/me`;
+  const fallback = '/me';
+
+  let res = await tryFetch(primary, { method: 'GET', headers });
+  if (!res) {
+    res = await tryFetch(fallback, { method: 'GET', headers });
+  }
+
+  const data = await parseJsonOrThrow(res, 'Failed to load user data');
+  return data as GetMeResponse;
+}
