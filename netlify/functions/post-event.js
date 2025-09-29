@@ -1,25 +1,23 @@
-import { getPool } from './utils/db.js';
-import jwt from 'jsonwebtoken';
+import supabase from './utils/supabase.js';
 
-const getAuthEmailFromBearer = (event) => {
+async function isAuthorized(event) {
+  // 1. Check for admin token
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (adminToken && event.headers['x-admin-token'] === adminToken) {
+    return true;
+  }
+
+  // 2. Check for standard user auth
   const authz = event.headers['authorization'] || event.headers['Authorization'];
   if (authz && authz.startsWith('Bearer ')) {
     const token = authz.slice('Bearer '.length);
-    const secret = process.env.OTP_JWT_SECRET;
-    if (!secret) return null;
-    try {
-      const payload = jwt.verify(token, secret);
-      if (payload && typeof payload === 'object' && payload.email) return payload.email;
-    } catch {}
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (!error && user) {
+      return true;
+    }
   }
-  return null;
-}
 
-const isAuthorized = (event) => {
-    const bearerEmail = getAuthEmailFromBearer(event);
-    const adminToken = process.env.ADMIN_TOKEN;
-    // Loosely authorized if they have any valid session token or an admin token
-    return Boolean(bearerEmail || (adminToken && event.headers['x-admin-token'] === adminToken));
+  return false;
 }
 
 const handler = async (event) => {
@@ -27,7 +25,7 @@ const handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  if (!isAuthorized(event)) {
+  if (!(await isAuthorized(event))) {
     return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
   }
 
@@ -38,11 +36,13 @@ const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Missing required fields' }) };
     }
 
-    const pool = getPool();
-    await pool.query(
-        'insert into events(type, text, meta) values ($1,$2,$3)',
-        [type, text, meta ? JSON.stringify(meta) : null]
-    );
+    const { error } = await supabase
+      .from('events')
+      .insert({ type, text, meta: meta || null });
+
+    if (error) {
+      throw error;
+    }
 
     return {
       statusCode: 200,
