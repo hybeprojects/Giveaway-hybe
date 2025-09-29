@@ -1,5 +1,5 @@
-export type SendOtpResponse = { ok: true; token: string } | { ok: false; error: string };
-export type VerifyOtpResponse = { ok: true; session: string } | { ok: false; error: string };
+export type SendOtpResponse = { ok: true } | { ok: false; error: string };
+export type VerifyOtpResponse = { ok: true; session: { access_token: string } } | { ok: false; error: string };
 
 export type UserEntry = {
   email: string;
@@ -48,7 +48,7 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
   }
 }
 
-export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
+export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<void> {
   const body = JSON.stringify({ email, purpose });
   const endpoint = '/.netlify/functions/send-otp';
 
@@ -57,11 +57,10 @@ export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'l
   const data = await parseJsonOrThrow(res, 'Failed to send code');
   const typed = data as SendOtpResponse;
   if (!typed.ok) throw new Error(typed.error || 'Failed to send code');
-  return typed.token;
 }
 
-export async function verifyOtp(email: string, code: string, token: string): Promise<string> {
-  const body = JSON.stringify({ email, code, token });
+export async function verifyOtp(email: string, code: string): Promise<string> {
+  const body = JSON.stringify({ email, code });
   const endpoint = '/.netlify/functions/verify-otp';
 
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
@@ -69,7 +68,7 @@ export async function verifyOtp(email: string, code: string, token: string): Pro
   const data = await parseJsonOrThrow(res, 'Verification failed');
   const typed = data as VerifyOtpResponse;
   if (!typed.ok) throw new Error(typed.error || 'Verification failed');
-  return typed.session;
+  return typed.session.access_token;
 }
 
 export function saveLocalSession(session: string) {
