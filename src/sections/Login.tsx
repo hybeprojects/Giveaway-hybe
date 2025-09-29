@@ -17,8 +17,7 @@ export default function Login() {
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
     try {
-      const token = await requestOtp(email, 'login');
-      (window as any).__otpToken = token;
+      await requestOtp(email, 'login');
       setSent(true);
     } catch (e: any) {
       toast.error(e.message || 'Failed to send code');
@@ -29,9 +28,7 @@ export default function Login() {
     if (code.trim().length !== 6 || !/^\d{6}$/.test(code)) { toast.error('Enter the 6-digit code'); return; }
     setLoading(true);
     try {
-      const token = (window as any).__otpToken as string | undefined;
-      if (!token) throw new Error('Missing verification token. Resend code.');
-      const session = await verifyOtpFn(email, code.trim(), token);
+      const session = await verifyOtpFn(email, code.trim());
       saveLocalSession(session);
       window.location.href = '/dashboard';
     } catch (e: any) {
