@@ -1,5 +1,6 @@
 [functions]
   directory = "netlify/functions/"
+  included_files = ["!**/*.test.js"]
 
 [[redirects]]
   from = "/*"
