@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handler } from './send-otp.js';
-import supabase from './utils/supabase.js';
+import { handler } from '../functions/send-otp.js';
+import supabase from '../functions/utils/supabase.js';
 
 // Mock the entire supabase client module
-vi.mock('./utils/supabase.js', () => {
+vi.mock('../functions/utils/supabase.js', () => {
   return {
     default: {
       auth: {
