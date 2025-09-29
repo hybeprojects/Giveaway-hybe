@@ -79,7 +79,9 @@ const handler = async (event) => {
     try { validateEmailEnvOrThrow(); } catch { /* no email provider configured, skip */ }
     const subjects = { withdrawal: 'Your withdrawal request was received' };
     const subject = subjects[type] || 'HYBE Giveaway update';
-    const html = `<p>${(detail || '').toString()}</p>`;
+    const bodyHtml = `<p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>`;
+    const { URL } = process.env;
+    const html = renderEmail(URL || 'https://hybe.com', subject, bodyHtml);
     sendEmail(event, { to: email, subject, text: (detail || '').toString(), html, queue: true }).catch(() => {});
 
     return {
