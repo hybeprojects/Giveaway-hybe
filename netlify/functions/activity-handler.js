@@ -1,7 +1,7 @@
 import { getPool } from './utils/db.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { sendEmail, validateEmailEnvOrThrow } from './utils/email.js';
+import { sendEmail, validateEmailEnvOrThrow, renderEmail } from './utils/email.js';
 
 // --- Authorization and Helper Functions ---
 
