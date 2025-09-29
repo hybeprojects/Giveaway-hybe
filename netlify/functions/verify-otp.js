@@ -69,10 +69,7 @@ const handler = async (event) => {
 
   } catch (e) {
     console.error('Error in /verify-otp function:', e);
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ ok: false, error: e?.message || 'Invalid or expired code' }),
-    };
+    return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Verification failed' }) };
   }
 };
 
