@@ -1,5 +1,5 @@
 import { getPool } from './utils/db.js';
-import sgMail from '@sendgrid/mail';
+import { renderEmail, sendEmail, classifyEmailError, makeIdempotencyKey, validateEmailEnvOrThrow } from './utils/email.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
@@ -7,42 +7,6 @@ const OTP_EXP_SECONDS = 600; // 10 minutes
 const MIN_RETRY_SECONDS = 60; // per device throttle
 const MAX_PER_HOUR = 5;
 
-// This function is adapted from server.js and is used for consistent email branding
-function renderEmail(origin, heading, innerHtml) {
-  const logoSrc = `${origin}/hybe-logo.svg`;
-  const hybeBlack = '#111';
-  const hybeYellow = '#f5ff00';
-  return `
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#fff;margin:0;padding:24px 0;">
-      <tr>
-        <td align="center">
-          <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="width:560px;max-width:100%;border:1px solid ${hybeBlack};border-radius:12px;overflow:hidden">
-            <tr>
-              <td style="background:${hybeYellow};padding:16px 24px">
-                <img src="${logoSrc}" alt="HYBE" width="100" style="display:block" />
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:24px;font-family:'Noto Sans KR', Arial, sans-serif;color:${hybeBlack}">
-                <h2 style="margin:0 0 8px 0;font-family:'Big Hit 201110', Arial, sans-serif;text-transform:uppercase;font-size:20px;line-height:24px">${heading}</h2>
-                ${innerHtml}
-              </td>
-            </tr>
-            <tr>
-              <td style="border-top:1px solid #eee;padding:16px 24px;font-family:'Noto Sans KR', Arial, sans-serif;color:#999;font-size:12px">
-                <div style="margin-bottom:8px">
-                  <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Terms of Service</a>
-                  <a href="#" style="color:#999;text-decoration:none;margin-right:16px">Privacy Policy</a>
-                  <a href="#" style="color:#999;text-decoration:none">Contact Us</a>
-                </div>
-                © HYBE Corporation. All Rights Reserved.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>`;
-}
 
 function parseCookies(header) {
   const out = {};
@@ -65,9 +29,10 @@ const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
-    const { OTP_JWT_SECRET, SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, URL } = process.env;
-    if (!OTP_JWT_SECRET || !SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
-      console.error('Server not configured: Missing critical environment variables (JWT Secret or SendGrid).');
+    const { OTP_JWT_SECRET, URL } = process.env;
+    try { validateEmailEnvOrThrow(); } catch (e) { console.error(e); return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Server not configured' }) }; }
+    if (!OTP_JWT_SECRET) {
+      console.error('Server not configured: Missing OTP secret.');
       return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Server not configured' }) };
     }
 
@@ -111,8 +76,6 @@ const handler = async (event) => {
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
     const token = jwt.sign({ email, codeHash }, OTP_JWT_SECRET, { expiresIn: OTP_EXP_SECONDS });
 
-    // --- SendGrid Email Logic ---
-    sgMail.setApiKey(SENDGRID_API_KEY);
     const textBody = `Your code is ${code} (expires in 10 minutes)`;
     const htmlBody = `
       <p style="margin:0 0 16px 0;font-size:14px;color:#666">Your one-time code is:</p>
@@ -120,15 +83,19 @@ const handler = async (event) => {
       <p style="margin:16px 0 0 0;font-size:14px;color:#666">This code expires in 10 minutes. If you did not request this, ignore this email.</p>
     `;
 
-    const msg = {
-      to: email,
-      from: SENDGRID_FROM_EMAIL,
-      subject: 'Your HYBE Giveaway code',
-      text: textBody,
-      html: renderEmail(URL || 'https://hybe.com', 'HYBE Giveaway verification code', htmlBody),
-    };
-
-    await sgMail.send(msg);
+    const idk = makeIdempotencyKey(event, `otp:${email}`);
+    try {
+      await sendEmail(event, {
+        to: email,
+        subject: 'Your HYBE Giveaway code',
+        text: textBody,
+        html: renderEmail(URL || 'https://hybe.com', 'HYBE Giveaway verification code', htmlBody),
+        idempotencyKey: idk,
+      });
+    } catch (err) {
+      const code = err.status || classifyEmailError(err);
+      return { statusCode: code, body: JSON.stringify({ ok: false, error: code === 429 ? 'Too many requests' : 'Failed to send code' }) };
+    }
 
     // --- Set Rate Limit Cookie ---
     const newPayload = rlPayload || {};
@@ -144,11 +111,9 @@ const handler = async (event) => {
     };
 
   } catch (e) {
-    console.error('Error in /send-otp function:', e.response?.body || e);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ ok: false, error: e?.message || 'Internal server error' }),
-    };
+    console.error('Error in /send-otp function:', e);
+    const status = typeof e.status === 'number' ? e.status : 500;
+    return { statusCode: status, body: JSON.stringify({ ok: false, error: status === 429 ? 'Too many requests' : 'Internal server error' }) };
   }
 };
 
