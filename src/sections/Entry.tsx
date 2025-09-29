@@ -47,8 +47,7 @@ export default function Entry() {
     setLoading(true);
     try {
       const auth = await import('../utils/auth');
-      const token = await auth.requestOtp(email, 'signup');
-      (window as any).__otpToken = token;
+      await auth.requestOtp(email, 'signup');
       setSent(true);
       toast.info('We sent a 6‑digit code to your email.');
     } catch (err: any) {
@@ -137,9 +136,7 @@ export default function Entry() {
                   setLoading(true);
                   try {
                     const auth = await import('../utils/auth');
-                    const token = (window as any).__otpToken as string | undefined;
-                    if (!token) throw new Error('Missing verification token. Resend code.');
-                    const session = await auth.verifyOtp(email, code, token);
+                    const session = await auth.verifyOtp(email, code);
                     auth.saveLocalSession(session);
                     try {
                       const sessionToken = localStorage.getItem('local_session') || '';
@@ -147,7 +144,6 @@ export default function Entry() {
                       await fetch(`/.netlify/functions/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
                     } catch (e) { console.warn('Failed to post entry/event', e); }
                     setBase(1);
-                    try { const sessionToken = localStorage.getItem('local_session') || ''; await fetch(`/.netlify/functions/send-email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, type: 'entry_verified', detail: 'Your entry is confirmed. Good luck!' }) }); } catch (e) { console.warn('Activity email failed to send', e); }
                     toast.success('Verified and entered. Welcome!');
                   } catch (e: any) {
                     toast.error(e?.message || 'Invalid or expired code');
