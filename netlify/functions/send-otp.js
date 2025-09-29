@@ -114,20 +114,34 @@ const handler = async (event) => {
     // Nodemailer transport setup
     const secure = String(SMTP_SECURE || 'true') === 'true';
     const from = FROM_EMAIL || SMTP_USER;
-    let transport = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT || '465'),
-        secure: secure,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
+    let transport;
+
+    // --- Robust SMTP transport creation with fallback ---
+    const primaryTransport = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT || '465'),
+      secure: secure,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
-    // Fallback logic from server.js
+
     try {
-        await transport.verify();
+      await primaryTransport.verify();
+      transport = primaryTransport;
     } catch (e) {
-        console.warn('Primary SMTP verify failed, trying fallback', e.message);
-        transport = nodemailer.createTransport({
-            host: SMTP_HOST, port: 587, secure: false, auth: { user: SMTP_USER, pass: SMTP_PASS }
-        });
+      console.warn(`Primary SMTP connection failed (${e.message}). Trying fallback...`);
+      const fallbackTransport = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: 587,
+        secure: false,
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      });
+      try {
+        await fallbackTransport.verify();
+        transport = fallbackTransport;
+      } catch (e2) {
+        console.error(`Fallback SMTP connection also failed: ${e2.message}`);
+        throw new Error('Failed to connect to email server.');
+      }
     }
 
     const bodyHtml = `
