@@ -1,88 +1,79 @@
-import { getPool } from './utils/db.js';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import { sendEmail, validateEmailEnvOrThrow, renderEmail } from './utils/email.js';
+import supabase from './utils/supabase.js';
 
-// --- Authorization and Helper Functions ---
+async function calculateBalance(email) {
+  const { data, error } = await supabase
+    .from('ledger_entries')
+    .select('type, amount')
+    .eq('email', email)
+    .eq('status', 'available');
 
-const getAuthEmailFromBearer = (event) => {
-  const authz = event.headers['authorization'] || event.headers['Authorization'];
-  if (authz && authz.startsWith('Bearer ')) {
-    const token = authz.slice('Bearer '.length);
-    const secret = process.env.OTP_JWT_SECRET;
-    if (!secret) return null;
-    try {
-      const payload = jwt.verify(token, secret);
-      if (payload && typeof payload === 'object' && payload.email) return payload.email;
-    } catch {}
+  if (error) {
+    throw error;
   }
-  return null;
-}
+  if (!data) return 0;
 
-async function calculateBalance(pool, email) {
-  const res = await pool.query(
-    `select
-      coalesce(sum(case when type = 'credit' then amount else 0 end), 0) as credits,
-      coalesce(sum(case when type = 'debit' then amount else 0 end), 0) as debits
-     from ledger_entries where email = $1 and status = 'available'`,
-    [email]
-  );
-  if (res.rows.length === 0) return 0;
-  const { credits, debits } = res.rows[0];
-  return Number(credits) - Number(debits);
+  return data.reduce((acc, entry) => {
+    if (entry.type === 'credit') return acc + entry.amount;
+    if (entry.type === 'debit') return acc - entry.amount;
+    return acc;
+  }, 0);
 }
-
-// --- Main Handler ---
 
 const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  const authorizedEmail = getAuthEmailFromBearer(event);
-  if (!authorizedEmail) {
+  // Authenticate user with Supabase
+  const authz = event.headers['authorization'] || event.headers['Authorization'];
+  if (!authz || !authz.startsWith('Bearer ')) {
+    return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
+  }
+  const token = authz.slice('Bearer '.length);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
     return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
   }
 
   try {
     const { email, type, detail, amount: amountFromDetail } = JSON.parse(event.body) || {};
 
-    if (authorizedEmail !== email) {
+    if (user.email !== email) {
       return { statusCode: 403, body: JSON.stringify({ ok: false, error: 'Forbidden' }) };
     }
     if (!email || !type) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Missing required fields: email, type' }) };
     }
 
-    const pool = getPool();
-
-    // --- Server-side withdrawal logic ---
     if (type === 'withdrawal') {
       const amount = Number(amountFromDetail || detail);
       if (isNaN(amount) || amount <= 0) {
         return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid withdrawal amount' }) };
       }
 
-      const availableBalance = await calculateBalance(pool, email);
+      const availableBalance = await calculateBalance(email);
       if (availableBalance < amount) {
         return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Insufficient balance' }) };
       }
 
       // Record the debit in the ledger as the source of truth
-      await pool.query(
-        `insert into ledger_entries(id, email, type, amount, currency, note, status)
-         values ($1, $2, 'debit', $3, 'points', 'Withdrawal request', 'completed')`,
-        [crypto.randomUUID(), email, amount]
-      );
+      const { error: insertError } = await supabase.from('ledger_entries').insert({
+        email,
+        type: 'debit',
+        amount,
+        currency: 'points',
+        note: 'Withdrawal request',
+        status: 'completed', // Assuming withdrawals are final
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
     }
 
-    try { validateEmailEnvOrThrow(); } catch { /* no email provider configured, skip */ }
-    const subjects = { withdrawal: 'Your withdrawal request was received' };
-    const subject = subjects[type] || 'HYBE Giveaway update';
-    const bodyHtml = `<p style="margin:0;font-size:14px;color:#666">${(detail || '').toString()}</p>`;
-    const { URL } = process.env;
-    const html = renderEmail(URL || 'https://hybe.com', subject, bodyHtml);
-    sendEmail(event, { to: email, subject, text: (detail || '').toString(), html, queue: true }).catch(() => {});
+    // Email functionality has been removed as per migration to Supabase for auth emails.
+    // Transactional emails like this would need a separate setup if still required.
 
     return {
       statusCode: 200,

@@ -1,4 +1,4 @@
-import { getPool } from './utils/db.js';
+import supabase from './utils/supabase.js';
 
 const handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -6,20 +6,28 @@ const handler = async (event) => {
   }
 
   try {
-    const pool = getPool();
-    const r = await pool.query('select text, created_at from events order by created_at desc limit 10');
+    const { data, error } = await supabase
+      .from('events')
+      .select('text, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      throw error;
+    }
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(r.rows || []),
+      body: JSON.stringify(data || []),
     };
 
   } catch (e) {
     console.error('Error in /get-events function:', e);
     return {
       statusCode: 500,
-      body: JSON.stringify([]), // Return empty array on error, as the original did
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([]),
     };
   }
 };
