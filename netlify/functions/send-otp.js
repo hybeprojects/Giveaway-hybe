@@ -1,5 +1,5 @@
 import { getPool } from './utils/db.js';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
@@ -7,7 +7,7 @@ const OTP_EXP_SECONDS = 600; // 10 minutes
 const MIN_RETRY_SECONDS = 60; // per device throttle
 const MAX_PER_HOUR = 5;
 
-// This function is adapted from server.js
+// This function is adapted from server.js and is used for consistent email branding
 function renderEmail(origin, heading, innerHtml) {
   const logoSrc = `${origin}/hybe-logo.svg`;
   const hybeBlack = '#111';
@@ -65,13 +65,13 @@ const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
-    const { OTP_JWT_SECRET, SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, SMTP_SECURE, FROM_EMAIL, URL } = process.env;
-    if (!OTP_JWT_SECRET || !SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      console.error('Server not configured: Missing critical environment variables.');
+    const { OTP_JWT_SECRET, SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, URL } = process.env;
+    if (!OTP_JWT_SECRET || !SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
+      console.error('Server not configured: Missing critical environment variables (JWT Secret or SendGrid).');
       return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Server not configured' }) };
     }
 
-    // Rate limiting logic from server.js
+    // Rate limiting logic
     const ua = event.headers['user-agent'] || 'unknown';
     const device = crypto.createHash('sha256').update(String(ua)).digest('hex').slice(0, 16);
     const cookies = parseCookies(event.headers.cookie);
@@ -95,7 +95,7 @@ const handler = async (event) => {
       }
     }
 
-    // Email existence check using Neon DB
+    // Email existence check
     const pool = getPool();
     const r = await pool.query('select 1 from entries where email = $1 limit 1', [email]);
     const exists = Boolean(r.rowCount && r.rowCount > 0);
@@ -111,49 +111,26 @@ const handler = async (event) => {
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
     const token = jwt.sign({ email, codeHash }, OTP_JWT_SECRET, { expiresIn: OTP_EXP_SECONDS });
 
-    // Nodemailer transport setup
-    const secure = String(SMTP_SECURE || 'true') === 'true';
-    const from = FROM_EMAIL || SMTP_USER;
-    let transport;
-
-    // --- Robust SMTP transport creation with fallback ---
-    const primaryTransport = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: Number(SMTP_PORT || '465'),
-      secure: secure,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-
-    try {
-      await primaryTransport.verify();
-      transport = primaryTransport;
-    } catch (e) {
-      console.warn(`Primary SMTP connection failed (${e.message}). Trying fallback...`);
-      const fallbackTransport = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: 587,
-        secure: false,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-      });
-      try {
-        await fallbackTransport.verify();
-        transport = fallbackTransport;
-      } catch (e2) {
-        console.error(`Fallback SMTP connection also failed: ${e2.message}`);
-        throw new Error('Failed to connect to email server.');
-      }
-    }
-
-    const bodyHtml = `
+    // --- SendGrid Email Logic ---
+    sgMail.setApiKey(SENDGRID_API_KEY);
+    const textBody = `Your code is ${code} (expires in 10 minutes)`;
+    const htmlBody = `
       <p style="margin:0 0 16px 0;font-size:14px;color:#666">Your one-time code is:</p>
       <div style="font-size:28px;font-weight:700;letter-spacing:4px;padding:12px 16px;border:1px dashed #111;display:inline-block">${code}</div>
       <p style="margin:16px 0 0 0;font-size:14px;color:#666">This code expires in 10 minutes. If you did not request this, ignore this email.</p>
     `;
-    const html = renderEmail(URL || 'https://hybe.com', 'HYBE Giveaway verification code', bodyHtml);
 
-    await transport.sendMail({ from, to: email, subject: 'Your HYBE Giveaway code', text: `Your code is ${code} (expires in 10 minutes)`, html });
+    const msg = {
+      to: email,
+      from: SENDGRID_FROM_EMAIL,
+      subject: 'Your HYBE Giveaway code',
+      text: textBody,
+      html: renderEmail(URL || 'https://hybe.com', 'HYBE Giveaway verification code', htmlBody),
+    };
 
-    // Update and set rate limit cookie
+    await sgMail.send(msg);
+
+    // --- Set Rate Limit Cookie ---
     const newPayload = rlPayload || {};
     const newHourly = (now > (rlPayload?.[key]?.resetAt || 0)) ? 0 : (hourlyCount || 0);
     newPayload[key] = { lastSent: now, hourlyCount: newHourly + 1, resetAt: now > resetAt ? now + 3600_000 : resetAt };
@@ -167,7 +144,7 @@ const handler = async (event) => {
     };
 
   } catch (e) {
-    console.error('Error in /send-otp function:', e);
+    console.error('Error in /send-otp function:', e.response?.body || e);
     return {
       statusCode: 500,
       body: JSON.stringify({ ok: false, error: e?.message || 'Internal server error' }),
