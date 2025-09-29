@@ -156,19 +156,14 @@ async function sendViaSendGrid({ to, from, subject, text, html, replyTo, idempot
 }
 
 async function createSmtpTransport(cfg) {
-  let transport = nodemailer.createTransport(cfg.smtp);
-  if (cfg.dkim) {
-    transport = nodemailer.createTransport({ ...cfg.smtp, dkim: cfg.dkim });
-  }
+  const opts = cfg.dkim ? { ...cfg.smtp, dkim: cfg.dkim } : cfg.smtp;
+  const transport = nodemailer.createTransport(opts);
   try {
     await transport.verify();
     return transport;
   } catch (err) {
-    const fallback = nodemailer.createTransport({
-      ...cfg.smtp,
-      port: 587,
-      secure: false,
-    });
+    const fallbackOpts = { ...opts, port: 587, secure: false };
+    const fallback = nodemailer.createTransport(fallbackOpts);
     await fallback.verify();
     return fallback;
   }

@@ -52,7 +52,8 @@ const handler = async (event) => {
   const { URL } = process.env;
   try { validateEmailEnvOrThrow(); } catch (e) {
     console.error(e);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Email server is not configured.' }) };
+    const detail = e.code === 'EMAIL_CONFIG_MISSING' ? e.message : 'Email server is not configured.';
+    return { statusCode: 500, body: JSON.stringify({ error: 'Email server is not configured.', detail }) };
   }
 
   const subjects = {
