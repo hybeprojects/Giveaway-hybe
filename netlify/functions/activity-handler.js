@@ -1,7 +1,7 @@
 import { getPool } from './utils/db.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 // --- Authorization and Helper Functions ---
 
@@ -76,27 +76,26 @@ const handler = async (event) => {
       );
     }
 
-    // --- Email Sending Logic ---
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, SMTP_SECURE, FROM_EMAIL, URL } = process.env;
-    if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    // --- SendGrid Email Logic ---
+    const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL } = process.env;
+    if (SENDGRID_API_KEY && SENDGRID_FROM_EMAIL) {
         // Send email, but don't block the response on it
         const emailPromise = (async () => {
-            const secure = String(SMTP_SECURE || 'true') === 'true';
-            const from = FROM_EMAIL || SMTP_USER;
-            let transport = nodemailer.createTransport({
-                host: SMTP_HOST, port: Number(SMTP_PORT || '465'), secure, auth: { user: SMTP_USER, pass: SMTP_PASS },
-            });
-            try { await transport.verify(); } catch {
-                transport = nodemailer.createTransport({ host: SMTP_HOST, port: 587, secure: false, auth: { user: SMTP_USER, pass: SMTP_PASS } });
-            }
+            sgMail.setApiKey(SENDGRID_API_KEY);
             const subjects = { withdrawal: 'Your withdrawal request was received' };
             const subject = subjects[type] || 'HYBE Giveaway update';
-            const html = `<p>${(detail || '').toString()}</p>`; // Simplified for this handler
-            await transport.sendMail({ from, to: email, subject, html, text: (detail || '').toString() });
+            const html = `<p>${(detail || '').toString()}</p>`;
+            const msg = {
+              to: email,
+              from: SENDGRID_FROM_EMAIL,
+              subject: subject,
+              html: html,
+              text: (detail || '').toString(),
+            };
+            await sgMail.send(msg);
         })();
-        emailPromise.catch(e => console.error("Activity email failed to send:", e));
+        emailPromise.catch(e => console.error("Activity email failed to send:", e.response?.body || e));
     }
-
 
     return {
       statusCode: 200,
