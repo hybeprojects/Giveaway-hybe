@@ -1,7 +1,7 @@
 import { getPool } from './utils/db.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import sgMail from '@sendgrid/mail';
+import { sendEmail, validateEmailEnvOrThrow } from './utils/email.js';
 
 // --- Authorization and Helper Functions ---
 
@@ -76,26 +76,11 @@ const handler = async (event) => {
       );
     }
 
-    // --- SendGrid Email Logic ---
-    const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL } = process.env;
-    if (SENDGRID_API_KEY && SENDGRID_FROM_EMAIL) {
-        // Send email, but don't block the response on it
-        const emailPromise = (async () => {
-            sgMail.setApiKey(SENDGRID_API_KEY);
-            const subjects = { withdrawal: 'Your withdrawal request was received' };
-            const subject = subjects[type] || 'HYBE Giveaway update';
-            const html = `<p>${(detail || '').toString()}</p>`;
-            const msg = {
-              to: email,
-              from: SENDGRID_FROM_EMAIL,
-              subject: subject,
-              html: html,
-              text: (detail || '').toString(),
-            };
-            await sgMail.send(msg);
-        })();
-        emailPromise.catch(e => console.error("Activity email failed to send:", e.response?.body || e));
-    }
+    try { validateEmailEnvOrThrow(); } catch { /* no email provider configured, skip */ }
+    const subjects = { withdrawal: 'Your withdrawal request was received' };
+    const subject = subjects[type] || 'HYBE Giveaway update';
+    const html = `<p>${(detail || '').toString()}</p>`;
+    sendEmail(event, { to: email, subject, text: (detail || '').toString(), html, queue: true }).catch(() => {});
 
     return {
       statusCode: 200,
