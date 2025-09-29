@@ -68,7 +68,8 @@ const handler = async (event) => {
   const text = (detail || '').toString();
 
   try {
-    await sendEmail(event, { to: email, subject, text, html, replyTo: undefined });
+    const replyTo = process.env.REPLY_TO_EMAIL || undefined;
+    await sendEmail(event, { to: email, subject, text, html, replyTo });
     return { statusCode: 200, body: JSON.stringify({ message: 'Email sent successfully' }) };
   } catch (error) {
     const status = classifyEmailError(error);
