@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
@@ -16,6 +16,18 @@ import EntryFormPage from './pages/EntryFormPage';
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    const { state } = location;
+    if (state?.scrollTo) {
+      const el = document.getElementById(state.scrollTo);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [location]);
+
   return (
     <>
       <OnboardingModal isOpen={showOnboard} onClose={() => setShowOnboard(false)} />
