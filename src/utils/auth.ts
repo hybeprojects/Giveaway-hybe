@@ -79,7 +79,7 @@ export async function loginWithPassword(email: string, password: string): Promis
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, password }) });
   const data = await parseJsonOrThrow(res as any, 'Login failed');
   const typed = data as VerifyOtpResponse;
-  if (!('ok' in data) || !data.ok) throw new Error((data && data.error) || 'Login failed');
+  if (!typed.ok) throw new Error(typed.error || 'Login failed');
   return typed.session.access_token;
 }
 
