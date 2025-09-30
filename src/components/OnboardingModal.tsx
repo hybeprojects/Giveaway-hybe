@@ -27,14 +27,41 @@ export default function OnboardingModal({ isOpen, onClose }: Props) {
     if (isOpen) burstPurpleConfetti();
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const content = document.getElementById('onboarding-modal-content');
+    if (!content) return;
+    const focusables = content.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusables[0];
+    first?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); }
+      if (e.key === 'Tab' && focusables.length) {
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); (first as HTMLElement).focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  const onOverlayClick = () => onClose();
+  const mountedAt = (window as any).__onboard_mount || (Date.now());
+  ;(window as any).__onboard_mount = mountedAt;
+  const onOverlayClick = () => {
+    if (Date.now() - mountedAt < 350) return; // ignore initial navigation click
+    onClose();
+  };
   const stop = (e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation();
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-desc" onClick={onOverlayClick}>
-      <div className="modal-content modal-appear" onClick={stop}>
+      <div id="onboarding-modal-content" className="modal-content modal-appear" onClick={stop}>
         <h2 id="onboarding-title">Welcome to the Ultimate HYBE Giveaway</h2>
         <div id="onboarding-desc" className="subtle mt-10">
           <p>
