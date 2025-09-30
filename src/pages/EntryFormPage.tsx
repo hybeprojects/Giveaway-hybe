@@ -73,7 +73,7 @@ const EntryFormPage = () => {
     setSubmissionStatus(null);
     setSubmissionMessage('');
     try {
-      const response = await fetch(import.meta.env.VITE_FORMSPREE_URL, {
+      const response = await fetch('/.netlify/functions/submit-to-formspree', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
