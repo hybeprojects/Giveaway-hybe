@@ -21,6 +21,61 @@
   <body>
     <div id="root"></div>
     <noscript>Enable JavaScript to run this app.</noscript>
+    <form name="entry" netlify netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="entry" />
+      <input type="text" name="referralCode" />
+      <input type="text" name="fullName" />
+      <input type="date" name="dob" />
+      <select name="gender">
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+        <option value="Prefer Not to Say">Prefer Not to Say</option>
+      </select>
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
+      <input type="text" name="zangiId" />
+      <input type="text" name="addressLine1" />
+      <input type="text" name="addressLine2" />
+      <input type="text" name="city" />
+      <input type="text" name="state" />
+      <input type="text" name="postalCode" />
+      <select name="country">
+        <option value="USA">United States</option>
+        <option value="GBR">United Kingdom</option>
+        <option value="KOR">South Korea</option>
+        <option value="JPN">Japan</option>
+        <option value="CAN">Canada</option>
+        <option value="DEU">Germany</option>
+        <option value="AUS">Australia</option>
+      </select>
+      <input type="checkbox" name="useAsMailingAddress" />
+      <select name="fanPreferenceBranch">
+        <option value="BIGHIT">BIGHIT MUSIC</option>
+        <option value="PLEDIS">PLEDIS Entertainment</option>
+        <option value="SOURCEMUSIC">SOURCE MUSIC</option>
+        <option value="BELIFTLAB">BELIFT LAB</option>
+        <option value="ADOR">ADOR</option>
+      </select>
+      <select name="favoriteGroup">
+        <option value="BTS">BTS</option>
+        <option value="TXT">Tomorrow X Together</option>
+        <option value="ENHYPEN">ENHYPEN</option>
+        <option value="SEVENTEEN">SEVENTEEN</option>
+        <option value="fromis_9">fromis_9</option>
+        <option value="LE SSERAFIM">LE SSERAFIM</option>
+        <option value="NewJeans">NewJeans</option>
+      </select>
+      <select name="favoriteArtist">
+        <option value="RM">RM</option>
+        <option value="Jin">Jin</option>
+        <option value="Suga">Suga</option>
+        <option value="J-Hope">J-Hope</option>
+        <option value="Jimin">Jimin</option>
+        <option value="V">V</option>
+        <option value="Jungkook">Jungkook</option>
+      </select>
+    </form>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
