@@ -78,7 +78,7 @@ const EntryFormPage = () => {
     setSubmissionStatus(null);
     setSubmissionMessage('');
     try {
-      const response = await fetch('https://formspree.io/f/myznwdan', {
+      const response = await fetch(import.meta.env.VITE_FORMSPREE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
