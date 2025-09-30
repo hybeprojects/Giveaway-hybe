@@ -178,11 +178,30 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div className="card card-pad mb-16">
+              <h3>Refer a Friend</h3>
+              <p className="subtle mb-12">Know someone who should join? Invite them! You'll get 200 points when they sign up.</p>
+              <div className="referral-box">
+                <input type="text" readOnly value={`${window.location.origin}/?ref=${entry?.referral_code || ''}`} className="referral-link-input" />
+                <button
+                  className="button-secondary"
+                  onClick={() => {
+                    if (entry?.referral_code) {
+                      navigator.clipboard.writeText(`${window.location.origin}/?ref=${entry.referral_code}`);
+                      toast.success('Referral link copied!');
+                    }
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
             {entry?.is_winner ? (
               <PrizeRoadmap user={entry} onDataRefresh={fetchDashboardData} />
             ) : (
               <div className="card card-pad">
-                <h3>Ways to Earn</h3>
+                <h3>Other Ways to Earn</h3>
                 <ul className="ways-to-earn">
                   <li><a href="#">🔗 Share on X <span className="points">+50</span></a></li>
                   <li><a href="#">❤️ Follow on Instagram <span className="points">+50</span></a></li>

@@ -5,14 +5,16 @@ export type UserEntry = {
   email: string;
   name: string;
   country: string;
-  base: number;
-  share: number;
-  invite: number;
-  total: number;
+  referral_code: string;
   created_at: string;
   is_winner?: boolean;
   prize_details?: string | null;
   shipping_address?: string | null;
+  // The following are client-side only and not guaranteed from the API
+  base?: number;
+  share?: number;
+  invite?: number;
+  total?: number;
 };
 export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; created_at: string; status?: 'pending' | 'available' };
 export type GetMeResponse = { ok: true; entry: UserEntry; ledger: LedgerEntry[] } | { ok: false; error: string };

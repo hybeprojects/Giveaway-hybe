@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
@@ -38,6 +38,17 @@ function Landing() {
 
 export default function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    // On app load, check for a referral code in the URL
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      // Store it in session storage to be used during signup
+      sessionStorage.setItem('referral_code', refCode);
+    }
+  }, []);
+
   return (
     <Routes location={location}>
       <Route path="/" element={<PageTransition><Landing /></PageTransition>} />

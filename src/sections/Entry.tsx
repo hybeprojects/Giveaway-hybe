@@ -140,7 +140,11 @@ export default function Entry() {
                     auth.saveLocalSession(session);
                     try {
                       const sessionToken = localStorage.getItem('local_session') || '';
-                      await fetch(`/.netlify/functions/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
+                      // Check for a referral code from the session
+                      const referred_by_code = sessionStorage.getItem('referral_code');
+                      const postEntryBody = { email, name, country, base: 1, share, invite, referred_by_code };
+
+                      await fetch(`/.netlify/functions/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify(postEntryBody) });
                       await fetch(`/.netlify/functions/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
                     } catch (e) { console.warn('Failed to post entry/event', e); }
                     setBase(1);
