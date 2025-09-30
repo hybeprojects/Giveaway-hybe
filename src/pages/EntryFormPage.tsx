@@ -100,6 +100,7 @@ const EntryFormPage: React.FC = () => {
 
       setSubmissionSuccess(true);
     } catch (err) {
+      console.error("Submission Error:", err);
       setSubmissionError('A network error occurred. Please try again later.');
     }
   };

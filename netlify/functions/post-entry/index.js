@@ -1,4 +1,4 @@
-import supabase from './utils/supabase.js';
+import supabase from '../utils/supabase.js';
 
 function isEmail(v) { return /.+@.+\..+/.test(v || ''); }
 function nonEmpty(v) { return typeof v === 'string' && v.trim().length > 0; }
