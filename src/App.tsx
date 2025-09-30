@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
@@ -11,10 +12,13 @@ import Login from './sections/Login';
 import Dashboard from './sections/Dashboard';
 import PageTransition from './components/PageTransition';
 import EnterPage from './sections/EnterPage';
+import OnboardingModal from './components/OnboardingModal';
 
 function Landing() {
+  const [open, setOpen] = useState(true);
   return (
     <>
+      <OnboardingModal isOpen={open} onClose={() => setOpen(false)} />
       <Navbar />
       <Hero />
       <Prizes />
