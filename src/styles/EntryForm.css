@@ -2,51 +2,51 @@
 .entry-form-page {
   padding-top: 2rem;
   padding-bottom: 4rem;
-  background-color: #121212; /* Dark background for the page */
+  background-color: #f8f9fa; /* Light background for the page */
 }
 
 /* Custom styling for fieldset to group form sections */
 .entry-form-page fieldset {
-  background-color: #1a1a1a;
-  border: 1px solid #333 !important; /* Use !important to override Bootstrap if needed */
+  background-color: #ffffff;
+  border: 1px solid #dee2e6 !important; /* Standard Bootstrap border color */
   border-radius: 8px;
-  padding: 1.5rem !important; /* Override Bootstrap padding */
+  padding: 1.5rem !important;
 }
 
 /* Styling for the legend of each fieldset */
 .entry-form-page legend {
   padding: 0 0.5rem;
-  font-size: 1.2rem; /* Larger font for section titles */
+  font-size: 1.2rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: #212529; /* Dark text for legends */
 }
 
-/* Overriding Bootstrap's default form control styles for a dark theme */
+/* Overriding Bootstrap's default form control styles for a light theme */
 .form-control,
 .form-select {
-  background-color: #2c2c2c;
-  border: 1px solid #444;
-  color: #fff;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  color: #212529;
   border-radius: 6px;
 }
 
 .form-control:focus,
 .form-select:focus {
-  background-color: #2c2c2c;
-  color: #fff;
+  background-color: #fff;
+  color: #212529;
   border-color: #8a2be2; /* Branded focus color */
   box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25);
 }
 
 /* Ensure placeholder text is visible */
 .form-control::placeholder {
-  color: #888;
+  color: #6c757d;
 }
 
 /* Style for invalid fields */
 .form-control.is-invalid,
 .form-select.is-invalid {
-  border-color: #dc3545; /* Bootstrap's danger color */
+  border-color: #dc3545;
 }
 
 /* Custom styling for react-phone-number-input */
@@ -57,10 +57,10 @@
 .PhoneInputInput {
   flex: 1;
   min-width: 0;
-  background-color: #2c2c2c;
-  border: 1px solid #444;
-  color: #fff;
-  padding: 0.375rem 0.75rem; /* Match Bootstrap's padding */
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  color: #212529;
+  padding: 0.375rem 0.75rem;
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;
   border-left: none;
@@ -73,16 +73,16 @@
 }
 
 .PhoneInputCountry {
-  background-color: #2c2c2c;
-  border: 1px solid #444;
+  background-color: #fff;
+  border: 1px solid #ced4da;
   border-right: none;
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
 }
 
 .PhoneInputCountrySelect {
-  background-color: #2c2c2c;
-  color: #fff;
+  background-color: #fff;
+  color: #212529;
   border: none;
 }
 
@@ -98,17 +98,16 @@
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
 }
 
-
 /* Styling for labels */
 .form-label {
-  color: #ccc;
+  color: #212529;
   font-weight: 500;
 }
 
 /* Checkbox styling */
 .form-check-input {
-  background-color: #2c2c2c;
-  border-color: #444;
+  background-color: #fff;
+  border-color: #ced4da;
 }
 
 .form-check-input:checked {
@@ -117,7 +116,7 @@
 }
 
 .form-check-label {
-  color: #ccc;
+  color: #212529;
 }
 
 /* Primary button styling */
