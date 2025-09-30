@@ -12,6 +12,8 @@ import supabase from './utils/supabase.js';
 // A misconfigured template will prevent users from receiving the code.
 // For more information, visit the Supabase documentation on email templates.
 
+const DEFAULT_RETRY_AFTER_SECONDS = 60;
+
 const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
@@ -40,7 +42,17 @@ const handler = async (event) => {
         status: error.status,
         details: error.stack,
       });
-      const isUserNotFound = /user.*not.*found/i.test(error.message);
+
+      const isRateLimited = error.status === 429 || /rate limit/i.test(error.message || '');
+      if (isRateLimited) {
+        return {
+          statusCode: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': String(DEFAULT_RETRY_AFTER_SECONDS) },
+          body: JSON.stringify({ ok: false, error: `Too many code requests. Please wait ${DEFAULT_RETRY_AFTER_SECONDS} seconds and try again.`, detail: error.message }),
+        };
+      }
+
+      const isUserNotFound = /user.*not.*found/i.test(error.message || '');
       const statusCode = isUserNotFound ? 404 : 400;
       const errorMessage = isUserNotFound
         ? 'Email not found. Please sign up first.'

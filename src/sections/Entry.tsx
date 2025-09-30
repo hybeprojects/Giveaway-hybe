@@ -20,6 +20,9 @@ function burstConfetti() {
   }
 }
 
+const COOLDOWN_SECONDS = 60;
+const LS_KEY_OTP_UNTIL = 'otp_cooldown_until';
+
 export default function Entry() {
   const [name, setName] = useState(getString('name'));
   const [email, setEmail] = useState(getString('email'));
@@ -30,6 +33,11 @@ export default function Entry() {
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState<number>(() => {
+    const v = parseInt(localStorage.getItem(LS_KEY_OTP_UNTIL) || '0', 10);
+    return Number.isFinite(v) ? v : 0;
+  });
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const toast = useToast();
   const lastMilestone = useRef<number>(0);
   const total = useMemo(() => base + share + invite, [base, share, invite]);
@@ -41,17 +49,63 @@ export default function Entry() {
   useEffect(() => { setNumber('share', share); }, [share]);
   useEffect(() => { setNumber('invite', invite); }, [invite]);
 
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      const left = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) {
+        clearInterval(id);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+
+  const armCooldown = () => {
+    const until = Date.now() + COOLDOWN_SECONDS * 1000;
+    setCooldownUntil(until);
+    localStorage.setItem(LS_KEY_OTP_UNTIL, String(until));
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
+    if (secondsLeft > 0) { toast.info(`Please wait ${secondsLeft}s before requesting a new code.`); return; }
+    setLoading(true);
+    try {
+      const auth = await import('../utils/auth');
+      await auth.requestOtp(email, 'signup');
+      armCooldown();
+      setSent(true);
+      toast.info('We sent a 6‑digit code to your email.');
+    } catch (err: any) {
+      const msg = String(err?.message || 'Could not send code.');
+      if (/too many|rate limit|429/i.test(msg)) {
+        armCooldown();
+        toast.error(`Too many requests. Please wait ${COOLDOWN_SECONDS}s and try again.`);
+      } else {
+        toast.error(msg);
+      }
+    } finally { setLoading(false); }
+  };
+
+  const resend = async () => {
+    if (secondsLeft > 0) { toast.info(`Please wait ${secondsLeft}s before resending.`); return; }
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
     try {
       const auth = await import('../utils/auth');
       await auth.requestOtp(email, 'signup');
-      setSent(true);
-      toast.info('We sent a 6‑digit code to your email.');
+      armCooldown();
+      toast.success('Code resent. Check your email.');
     } catch (err: any) {
-      toast.error(err?.message || 'Could not send code.');
+      const msg = String(err?.message || 'Could not resend code.');
+      if (/too many|rate limit|429/i.test(msg)) {
+        armCooldown();
+        toast.error(`Too many requests. Please wait ${COOLDOWN_SECONDS}s and try again.`);
+      } else {
+        toast.error(msg);
+      }
     } finally { setLoading(false); }
   };
 
@@ -98,7 +152,7 @@ export default function Entry() {
               <label className="label">Enter Your Email Address</label>
               <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
               <div className="button-row">
-                <button className="button-primary" type="submit" disabled={loading}>{loading ? 'Sending Code...' : 'Send Verification Code'}</button>
+                <button className="button-primary" type="submit" disabled={loading || secondsLeft > 0}>{loading ? 'Sending Code...' : (secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Send Verification Code')}</button>
                 <a className="button-secondary" href="/login">Login to Dashboard</a>
               </div>
               <p className="form-note">A 6-digit code will be sent to your email for verification.</p>
@@ -149,6 +203,7 @@ export default function Entry() {
                     toast.error(e?.message || 'Invalid or expired code');
                   } finally { setLoading(false); }
                 }}>Verify & Submit</button>
+                <button type="button" className="button-secondary" onClick={resend} disabled={loading || secondsLeft > 0}>{secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Resend Code'}</button>
                 <button type="button" className="button-secondary" onClick={() => { setSent(false); }}>Change Email</button>
               </div>
             </div>
