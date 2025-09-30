@@ -12,18 +12,11 @@ import Login from './sections/Login';
 import Dashboard from './sections/Dashboard';
 import PageTransition from './components/PageTransition';
 import OnboardingModal from './components/OnboardingModal';
+import EntryFormPage from './pages/EntryFormPage';
 
 function Landing() {
-  const [isModalOpen, setModalOpen] = useState(true);
-  
-  
-  const handleCloseModal = () => {
-    setModalOpen(false);
-  };
-
   return (
     <>
-      <OnboardingModal isOpen={isModalOpen} onClose={handleCloseModal} />
       <Navbar />
       <Hero />
       <Prizes />
@@ -43,6 +36,7 @@ export default function App() {
       <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
       <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
       <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+      <Route path="/entry" element={<PageTransition><EntryFormPage /></PageTransition>} />
       <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
     </Routes>
   );
