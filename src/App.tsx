@@ -1,5 +1,4 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useState } from 'react';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
@@ -11,24 +10,15 @@ import Footer from './sections/Footer';
 import Login from './sections/Login';
 import Dashboard from './sections/Dashboard';
 import PageTransition from './components/PageTransition';
-import OnboardingModal from './components/OnboardingModal';
+import EnterPage from './sections/EnterPage';
 
 function Landing() {
-  const [isModalOpen, setModalOpen] = useState(true);
-  
-  
-  const handleCloseModal = () => {
-    setModalOpen(false);
-  };
-
   return (
     <>
-      <OnboardingModal isOpen={isModalOpen} onClose={handleCloseModal} />
       <Navbar />
       <Hero />
       <Prizes />
       <VIPExperience />
-      <Entry />
       <Trust />
       <LiveUpdates />
       <Footer />
@@ -41,6 +31,7 @@ export default function App() {
   return (
     <Routes location={location}>
       <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+      <Route path="/enter" element={<PageTransition><EnterPage /></PageTransition>} />
       <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
       <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
       <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
