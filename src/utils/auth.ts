@@ -22,7 +22,6 @@ export async function tryFetch(url: string, opts: RequestInit) {
     const res = await fetch(url, opts);
     return res;
   } catch (e) {
-    // Network-level failure
     return null as unknown as Response;
   }
 }
@@ -51,9 +50,7 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
 export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<void> {
   const body = JSON.stringify({ email, purpose });
   const endpoint = '/.netlify/functions/send-otp';
-
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
-
   const data = await parseJsonOrThrow(res, 'Failed to send code');
   const typed = data as SendOtpResponse;
   if (!typed.ok) throw new Error(typed.error || 'Failed to send code');
@@ -62,12 +59,27 @@ export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'l
 export async function verifyOtp(email: string, code: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
   const body = JSON.stringify({ email, code, purpose });
   const endpoint = '/.netlify/functions/verify-otp';
-
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
-
   const data = await parseJsonOrThrow(res, 'Verification failed');
   const typed = data as VerifyOtpResponse;
   if (!typed.ok) throw new Error(typed.error || 'Verification failed');
+  return typed.session.access_token;
+}
+
+export async function setPassword(password: string): Promise<void> {
+  const sessionToken = localStorage.getItem('local_session') || '';
+  if (!sessionToken) throw new Error('Not authorized');
+  const endpoint = '/.netlify/functions/set-password';
+  const res = await tryFetch(endpoint, { method: 'POST', headers: { ...buildHeaders(), Authorization: `Bearer ${sessionToken}` }, body: JSON.stringify({ password }) });
+  await parseJsonOrThrow(res as any, 'Failed to set password');
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<string> {
+  const endpoint = '/.netlify/functions/login';
+  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, password }) });
+  const data = await parseJsonOrThrow(res as any, 'Login failed');
+  const typed = data as VerifyOtpResponse;
+  if (!('ok' in data) || !data.ok) throw new Error((data && data.error) || 'Login failed');
   return typed.session.access_token;
 }
 
@@ -94,12 +106,9 @@ export function clearLocalSession() { localStorage.removeItem('local_session'); 
 export async function getMe(): Promise<GetMeResponse> {
   const sessionToken = localStorage.getItem('local_session') || '';
   if (!sessionToken) return { ok: false, error: 'Not logged in' };
-
   const headers = { 'Authorization': `Bearer ${sessionToken}` };
   const endpoint = '/.netlify/functions/get-me';
-
   const res = await tryFetch(endpoint, { method: 'GET', headers });
-
   const data = await parseJsonOrThrow(res, 'Failed to load user data');
   return data as GetMeResponse;
 }
