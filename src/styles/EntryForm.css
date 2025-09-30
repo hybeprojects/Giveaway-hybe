@@ -1,77 +1,69 @@
+/* General container for the form page */
 .entry-form-page {
-  padding: 2rem 1rem;
-  max-width: 800px;
-  margin: 2rem auto;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+  background-color: #121212; /* Dark background for the page */
+}
+
+/* Custom styling for fieldset to group form sections */
+.entry-form-page fieldset {
   background-color: #1a1a1a;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid #333 !important; /* Use !important to override Bootstrap if needed */
+  border-radius: 8px;
+  padding: 1.5rem !important; /* Override Bootstrap padding */
 }
 
-.entry-form-page h2 {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #fff;
+/* Styling for the legend of each fieldset */
+.entry-form-page legend {
+  padding: 0 0.5rem;
+  font-size: 1.2rem; /* Larger font for section titles */
+  font-weight: 600;
+  color: #e0e0e0;
 }
 
-.entry-form-page form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Form element styling */
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #ccc;
-}
-
+/* Overriding Bootstrap's default form control styles for a dark theme */
 .form-control,
 .form-select {
-  width: 100%;
-  padding: 0.75rem 1rem;
   background-color: #2c2c2c;
   border: 1px solid #444;
-  border-radius: 6px;
   color: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 6px;
 }
 
 .form-control:focus,
 .form-select:focus {
-  outline: none;
-  border-color: #8a2be2;
+  background-color: #2c2c2c;
+  color: #fff;
+  border-color: #8a2be2; /* Branded focus color */
   box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25);
 }
 
+/* Ensure placeholder text is visible */
+.form-control::placeholder {
+  color: #888;
+}
+
+/* Style for invalid fields */
 .form-control.is-invalid,
 .form-select.is-invalid {
-  border-color: #dc3545;
+  border-color: #dc3545; /* Bootstrap's danger color */
 }
 
-.invalid-feedback {
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-/* Phone input custom styling */
+/* Custom styling for react-phone-number-input */
 .PhoneInput {
   display: flex;
-  align-items: center;
 }
 
 .PhoneInputInput {
-  width: 100%;
-  padding: 0.75rem 1rem;
+  flex: 1;
+  min-width: 0;
   background-color: #2c2c2c;
   border: 1px solid #444;
-  border-radius: 6px;
   color: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  padding: 0.375rem 0.75rem; /* Match Bootstrap's padding */
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-left: none;
 }
 
 .PhoneInputInput:focus {
@@ -81,21 +73,54 @@
 }
 
 .PhoneInputCountry {
-  padding-right: 0.5rem;
+  background-color: #2c2c2c;
+  border: 1px solid #444;
+  border-right: none;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
 }
 
 .PhoneInputCountrySelect {
   background-color: #2c2c2c;
-  border: 1px solid #444;
   color: #fff;
-  border-radius: 6px;
+  border: none;
 }
 
-.is-invalid .PhoneInputInput {
+/* Style for the phone input when it's invalid */
+.PhoneInput.is-invalid .PhoneInputInput,
+.PhoneInput.is-invalid .PhoneInputCountry {
   border-color: #dc3545;
 }
 
-/* Button styling */
+.PhoneInput.is-invalid .PhoneInputInput:focus,
+.PhoneInput.is-invalid .PhoneInputCountry:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+
+/* Styling for labels */
+.form-label {
+  color: #ccc;
+  font-weight: 500;
+}
+
+/* Checkbox styling */
+.form-check-input {
+  background-color: #2c2c2c;
+  border-color: #444;
+}
+
+.form-check-input:checked {
+  background-color: #8a2be2;
+  border-color: #8a2be2;
+}
+
+.form-check-label {
+  color: #ccc;
+}
+
+/* Primary button styling */
 .button-primary {
   padding: 0.8rem 1.5rem;
   font-size: 1rem;
@@ -115,79 +140,4 @@
 .button-primary:disabled {
   background-color: #555;
   cursor: not-allowed;
-}
-
-/* Alert messages for submission status */
-.alert {
-  padding: 1rem;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.alert-success {
-  background-color: #28a745;
-  color: #fff;
-}
-
-.alert-danger {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 0.3s ease-in-out;
-  z-index: 1050;
-}
-
-.modal-content {
-  background-color: #1e1e1e;
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 500px;
-  width: 90%;
-  text-align: center;
-  animation: slideIn 0.4s ease-in-out;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-  border: 1px solid #333;
-}
-
-.modal-content h2 {
-  color: #fff;
-  font-weight: 700;
-}
-
-.modal-content p {
-  color: #bbb;
-  line-height: 1.6;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
