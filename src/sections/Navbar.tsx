@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const go = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setIsMenuOpen(false); // Close menu on link click
+  const handleScroll = (id: string) => {
+    setIsMenuOpen(false);
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollTo: id } });
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const toggleMenu = () => {
@@ -25,11 +31,11 @@ export default function Navbar() {
           <div className="bar"></div>
         </div>
         <nav className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
-          <button className="nav-button" onClick={() => go('prizes')}>Prizes</button>
-          <button className="nav-button" onClick={() => go('vip')}>VIP Experience</button>
-          <button className="nav-button" onClick={() => go('enter')}>Enter Now</button>
-          <button className="nav-button" onClick={() => go('updates')}>Live Updates</button>
-          <a className="nav-button" href="/dashboard">Dashboard</a>
+          <button className="nav-button" onClick={() => handleScroll('prizes')}>Prizes</button>
+          <button className="nav-button" onClick={() => handleScroll('vip')}>VIP Experience</button>
+          <button className="nav-button" onClick={() => handleScroll('enter')}>Enter Now</button>
+          <button className="nav-button" onClick={() => handleScroll('updates')}>Live Updates</button>
+          <Link className="nav-button" to="/dashboard">Dashboard</Link>
         </nav>
       </div>
     </header>
