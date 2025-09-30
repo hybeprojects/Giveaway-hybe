@@ -98,7 +98,7 @@ describe('send-otp handler', () => {
 
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.body).error).toBe(
-      'Failed to send OTP. Please contact support, as email templates may be misconfigured.'
+      'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.'
     );
   });
 });

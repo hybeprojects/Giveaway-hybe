@@ -6,7 +6,7 @@ const handler = async (event) => {
   }
 
   try {
-    const { email, code } = JSON.parse(event.body) || {};
+    const { email, code, purpose } = JSON.parse(event.body) || {};
 
     if (!email || !/.+@.+\..+/.test(email)) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
@@ -19,7 +19,7 @@ const handler = async (event) => {
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: code,
-      type: 'email',
+      type: purpose === 'signup' ? 'signup' : 'email',
     });
 
     if (error) {
