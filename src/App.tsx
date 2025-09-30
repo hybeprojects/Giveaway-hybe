@@ -15,7 +15,11 @@ import EnterPage from './sections/EnterPage';
 import OnboardingModal from './components/OnboardingModal';
 
 function Landing() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  React.useEffect(() => {
+    const id = setTimeout(() => setOpen(true), 50);
+    return () => clearTimeout(id);
+  }, []);
   return (
     <>
       <OnboardingModal isOpen={open} onClose={() => setOpen(false)} />
