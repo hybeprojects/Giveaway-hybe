@@ -1,12 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ProgressBar from '../components/ProgressBar';
-import { getNumber, setNumber, getString, setString } from '../utils/storage';
 import { useToast } from '../components/Toast';
+import * as auth from '../utils/auth';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
+function isStrongPassword(pw: string) {
+  if (!pw || pw.length < 8) return false;
+  const hasLower = /[a-z]/.test(pw);
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasNum = /\d/.test(pw);
+  const hasSym = /[^\w\s]/.test(pw);
+  return hasLower && hasUpper && (hasNum || hasSym);
+}
+function passwordStrength(pw: string) {
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (/[a-z]/.test(pw)) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/\d/.test(pw)) s++;
+  if (/[^\w\s]/.test(pw)) s++;
+  return Math.min(5, s);
+}
+
+const COOLDOWN_SECONDS = 60;
+const LS_KEY_OTP_UNTIL = 'otp_cooldown_until';
 
 function burstConfetti() {
-  const count = 60;
+  const count = 80;
   const root = document.body;
   for (let i = 0; i < count; i++) {
     const el = document.createElement('i');
@@ -16,156 +36,240 @@ function burstConfetti() {
     el.style.setProperty('--tx', (Math.random()*2-1).toFixed(2));
     el.style.setProperty('--dur', (0.8 + Math.random()*0.8).toFixed(2) + 's');
     root.appendChild(el);
-    setTimeout(() => el.remove(), 1500);
+    setTimeout(() => el.remove(), 1800);
   }
 }
 
-const COOLDOWN_SECONDS = 60;
-const LS_KEY_OTP_UNTIL = 'otp_cooldown_until';
-
 export default function Entry() {
-  const [name, setName] = useState(getString('name'));
-  const [email, setEmail] = useState(getString('email'));
-  const [country, setCountry] = useState(getString('country'));
-  const [base, setBase] = useState(getNumber('base', 0));
-  const [share, setShare] = useState(getNumber('share', 0));
-  const [invite, setInvite] = useState(getNumber('invite', 0));
-  const [sent, setSent] = useState(false);
-  const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+  const [step, setStep] = useState(1);
+  const totalSteps = 4;
+
+  // Step 1: Eligibility
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [birthdate, setBirthdate] = useState(''); // YYYY-MM-DD
+  const [country, setCountry] = useState('');
+  const [consentTerms, setConsentTerms] = useState(false);
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+
+  // Step 2: Fan Info
+  const [favoriteArtist, setFavoriteArtist] = useState('');
+  const [biasMember, setBiasMember] = useState('');
+  const [fanSinceYear, setFanSinceYear] = useState('');
+  const [favoriteSongAlbum, setFavoriteSongAlbum] = useState('');
+
+  // Step 3: Engagement
+  const [twitter, setTwitter] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [tiktok, setTiktok] = useState('');
+  const [fanMessage, setFanMessage] = useState('');
+  const [fanArtUrl, setFanArtUrl] = useState('');
+  const [triviaAnswer, setTriviaAnswer] = useState('');
+
+  // Step 4: Bonus
+  const [referralCode, setReferralCode] = useState('');
+  const [preferredPrize, setPreferredPrize] = useState('');
+
+  // OTP Modal
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+  const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement | null>(null));
   const [cooldownUntil, setCooldownUntil] = useState<number>(() => {
     const v = parseInt(localStorage.getItem(LS_KEY_OTP_UNTIL) || '0', 10);
     return Number.isFinite(v) ? v : 0;
   });
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const toast = useToast();
-  const lastMilestone = useRef<number>(0);
-  const total = useMemo(() => base + share + invite, [base, share, invite]);
-
-  useEffect(() => { setString('name', name); }, [name]);
-  useEffect(() => { setString('email', email); }, [email]);
-  useEffect(() => { setString('country', country); }, [country]);
-  useEffect(() => { setNumber('base', base); }, [base]);
-  useEffect(() => { setNumber('share', share); }, [share]);
-  useEffect(() => { setNumber('invite', invite); }, [invite]);
-
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
       const left = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
       setSecondsLeft(left);
-      if (left <= 0) {
-        clearInterval(id);
-      }
+      if (left <= 0) clearInterval(id);
     }, 500);
     return () => clearInterval(id);
   }, [cooldownUntil]);
-
   const armCooldown = () => {
     const until = Date.now() + COOLDOWN_SECONDS * 1000;
     setCooldownUntil(until);
     localStorage.setItem(LS_KEY_OTP_UNTIL, String(until));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Password Modal
+  const [pwOpen, setPwOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [pwShow, setPwShow] = useState(false);
+
+  const stepValid = useMemo(() => {
+    if (step === 1) {
+      return fullName.trim() && validateEmail(email) && country && consentTerms && consentPrivacy;
+    }
+    if (step === 2) {
+      return favoriteArtist.trim() && fanSinceYear.trim();
+    }
+    if (step === 3) {
+      return true; // optional fields
+    }
+    if (step === 4) {
+      return true; // all optional here too
+    }
+    return false;
+  }, [step, fullName, email, country, consentTerms, consentPrivacy, favoriteArtist, fanSinceYear]);
+
+  const goNext = async () => {
+    if (!stepValid) return;
+    if (step < totalSteps) {
+      setStep(s => s + 1);
+      return;
+    }
+    // Final submit → trigger OTP
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
-    if (secondsLeft > 0) { toast.info(`Please wait ${secondsLeft}s before requesting a new code.`); return; }
-    setLoading(true);
     try {
-      const auth = await import('../utils/auth');
       await auth.requestOtp(email, 'signup');
       armCooldown();
-      setSent(true);
+      setOtp(['','','','','','']);
+      setOtpOpen(true);
+      setTimeout(() => otpRefs[0].current?.focus(), 50);
       toast.info('We sent a 6‑digit code to your email.');
-    } catch (err: any) {
-      const msg = String(err?.message || 'Could not send code.');
-      if (/too many|rate limit|429/i.test(msg)) {
-        armCooldown();
-        toast.error(`Too many requests. Please wait ${COOLDOWN_SECONDS}s and try again.`);
-      } else {
-        toast.error(msg);
-      }
-    } finally { setLoading(false); }
+    } catch (e: any) {
+      const msg = String(e?.message || 'Could not send code.');
+      if (/too many|rate limit|429/i.test(msg)) { armCooldown(); }
+      toast.error(msg);
+    }
   };
 
-  const resend = async () => {
-    if (secondsLeft > 0) { toast.info(`Please wait ${secondsLeft}s before resending.`); return; }
-    if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
-    setLoading(true);
+  const handleOtpInput = (i: number, v: string) => {
+    const d = v.replace(/[^0-9]/g, '').slice(-1);
+    setOtp(prev => {
+      const next = [...prev];
+      next[i] = d;
+      return next;
+    });
+    if (d && i < 5) otpRefs[i+1].current?.focus();
+  };
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (text.length) {
+      e.preventDefault();
+      setOtp(text.split('').concat(Array(6 - text.length).fill('')));
+      const idx = Math.min(5, text.length);
+      otpRefs[idx]?.current?.focus();
+    }
+  };
+
+  const verifyOtp = async () => {
+    const code = otp.join('');
+    if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     try {
-      const auth = await import('../utils/auth');
+      const token = await auth.verifyOtp(email, code, 'signup');
+      auth.saveLocalSession(token);
+      setOtpOpen(false);
+      setPwOpen(true);
+      toast.success('Email verified');
+    } catch (e: any) {
+      toast.error(e?.message || 'Invalid or expired code');
+    }
+  };
+
+  const resendOtp = async () => {
+    if (secondsLeft > 0) { toast.info(`Please wait ${secondsLeft}s`); return; }
+    try {
       await auth.requestOtp(email, 'signup');
       armCooldown();
-      toast.success('Code resent. Check your email.');
-    } catch (err: any) {
-      const msg = String(err?.message || 'Could not resend code.');
-      if (/too many|rate limit|429/i.test(msg)) {
-        armCooldown();
-        toast.error(`Too many requests. Please wait ${COOLDOWN_SECONDS}s and try again.`);
-      } else {
-        toast.error(msg);
-      }
-    } finally { setLoading(false); }
+      toast.success('Code resent');
+    } catch (e: any) {
+      const msg = String(e?.message || 'Could not resend code.');
+      if (/too many|rate limit|429/i.test(msg)) armCooldown();
+      toast.error(msg);
+    }
   };
 
-  const shareNow = async () => {
-    const url = window.location.href;
-    const text = 'I just entered the HYBE Ultimate Mega Giveaway!';
+  const setUserPassword = async () => {
+    if (!isStrongPassword(password)) { toast.error('Use a stronger password'); return; }
     try {
-      if (navigator.share) await navigator.share({ title: 'HYBE Giveaway', text, url });
-      else await navigator.clipboard.writeText(url);
-      setShare((v) => v + 3);
-      toast.success('Shared! +3 entries');
-    } catch {}
-  };
-
-  const inviteFriend = async () => {
-    const friend = prompt('Enter your friend\'s email to send an invite:');
-    if (friend && validateEmail(friend)) {
-      setInvite(v => v + 5);
-      toast.success('Invite sent! +5 entries');
+      await auth.setPassword(password);
+      // Submit entry payload
+      const sessionToken = localStorage.getItem('local_session') || '';
+      const res = await fetch('/.netlify/functions/post-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({
+          email,
+          full_name: fullName,
+          phone,
+          birthdate: birthdate || null,
+          country,
+          consent_terms: consentTerms,
+          consent_privacy: consentPrivacy,
+          marketing_opt_in: marketingOptIn,
+          favorite_artist: favoriteArtist,
+          bias_member: biasMember,
+          fan_since_year: fanSinceYear ? Number(fanSinceYear) : null,
+          favorite_song_album: favoriteSongAlbum,
+          twitter_handle: twitter,
+          instagram_handle: instagram,
+          tiktok_handle: tiktok,
+          fan_message: fanMessage,
+          fan_art_url: fanArtUrl,
+          trivia_answer: triviaAnswer,
+          referral_code: referralCode,
+          preferred_prize: preferredPrize,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Submission failed');
+      setPwOpen(false);
+      burstConfetti();
+      toast.success('You\'re in!');
+      setTimeout(() => { window.location.href = '/dashboard'; }, 800);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to finish sign-up');
     }
   };
 
-  const googleLogin = () => alert('Google sign-in can be connected.');
-  const weverseLogin = () => alert('Weverse sign-in can be connected.');
-
-  useEffect(() => {
-    const milestones = [5, 10, 20];
-    for (const m of milestones) {
-      if (lastMilestone.current < m && total >= m) {
-        burstConfetti();
-        lastMilestone.current = m;
-      }
-    }
-  }, [total]);
+  const pct = Math.round((step / totalSteps) * 100);
+  const pwStrength = passwordStrength(password);
 
   return (
     <section id="enter" className="section entry-section" aria-label="Entry">
       <div className="container">
         <h2 className="section-title">Join the Ultimate Giveaway</h2>
         <p className="section-subtitle">Complete the form to enter and boost your chances by sharing with friends.</p>
-        <form className="entry-form" onSubmit={submit}>
-          {!sent ? (
-            <div className="form-step">
-              <label className="label">Enter Your Email Address</label>
-              <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
-              <div className="button-row">
-                <button className="button-primary" type="submit" disabled={loading || secondsLeft > 0}>{loading ? 'Sending Code...' : (secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Send Verification Code')}</button>
-                <a className="button-secondary" href="/login">Login to Dashboard</a>
-              </div>
-              <p className="form-note">A 6-digit code will be sent to your email for verification.</p>
-            </div>
-          ) : (
+
+        <div className="card card-pad mb-12">
+          <div className="row-between mb-8">
+            <div className="subtle">Step {step} of {totalSteps}</div>
+            <div style={{ width: '40%' }}><ProgressBar value={pct} max={100} /></div>
+          </div>
+
+          {/* Step 1 */}
+          {step === 1 && (
             <div className="form-step">
               <div className="form-row">
                 <div>
                   <label className="label">Full Name</label>
-                  <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
+                  <input className="input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
                 </div>
                 <div>
-                  <label className="label">Country of Residence</label>
+                  <label className="label">Email</label>
+                  <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div>
+                  <label className="label">Phone</label>
+                  <input className="input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
+                </div>
+                <div>
+                  <label className="label">Birthdate</label>
+                  <input className="input" type="date" value={birthdate} onChange={e => setBirthdate(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div>
+                  <label className="label">Country/Region</label>
                   <select className="input" value={country} onChange={e => setCountry(e.target.value)}>
                     <option value="">Select your country</option>
                     <option>United States</option>
@@ -177,51 +281,177 @@ export default function Entry() {
                     <option>Australia</option>
                   </select>
                 </div>
+                <div />
               </div>
-              <div className="form-group">
-                <label className="label">Verification Code</label>
-                <input className="input" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="123456" />
+              <div className="form-group mt-6">
+                <label className="checkbox">
+                  <input type="checkbox" checked={consentTerms} onChange={e => setConsentTerms(e.target.checked)} />
+                  <span>I agree to the Official Rules</span>
+                </label>
+                <label className="checkbox mt-4">
+                  <input type="checkbox" checked={consentPrivacy} onChange={e => setConsentPrivacy(e.target.checked)} />
+                  <span>I agree to the Privacy Policy</span>
+                </label>
+                <label className="checkbox mt-4">
+                  <input type="checkbox" checked={marketingOptIn} onChange={e => setMarketingOptIn(e.target.checked)} />
+                  <span>Send me updates and promotions (optional)</span>
+                </label>
               </div>
-              <div className="button-row">
-                <button type="button" className="button-primary" onClick={async () => {
-                  if (!name.trim()) { toast.error('Name is required'); return; }
-                  if (!country) { toast.error('Select a country'); return; }
-                  if (code.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-                  setLoading(true);
-                  try {
-                    const auth = await import('../utils/auth');
-                    const session = await auth.verifyOtp(email, code, 'signup');
-                    auth.saveLocalSession(session);
-                    try {
-                      const sessionToken = localStorage.getItem('local_session') || '';
-                      await fetch(`/.netlify/functions/post-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ email, name, country, base: 1, share, invite }) });
-                      await fetch(`/.netlify/functions/post-event`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` }, body: JSON.stringify({ type: 'entry_verified', text: `${name || email} entered`, meta: { email } }) });
-                    } catch (e) { console.warn('Failed to post entry/event', e); }
-                    setBase(1);
-                    toast.success('Verified and entered. Welcome!');
-                  } catch (e: any) {
-                    toast.error(e?.message || 'Invalid or expired code');
-                  } finally { setLoading(false); }
-                }}>Verify & Submit</button>
-                <button type="button" className="button-secondary" onClick={resend} disabled={loading || secondsLeft > 0}>{secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Resend Code'}</button>
-                <button type="button" className="button-secondary" onClick={() => { setSent(false); }}>Change Email</button>
+              <div className="button-row mt-10">
+                <button className="button-primary" type="button" onClick={goNext} disabled={!stepValid}>Next</button>
               </div>
             </div>
           )}
 
-          <div className="gamify-box mt-14">
-            <h3>Boost Your Entries</h3>
-            <p className="subtle">Share on social media for +3 entries, and invite a friend for +5 entries.</p>
-            <div className="button-row">
-              <button type="button" className="button-secondary" onClick={shareNow}>Share on Social</button>
-              <button type="button" className="button-secondary" onClick={inviteFriend}>Invite a Friend</button>
+          {/* Step 2 */}
+          {step === 2 && (
+            <div className="form-step">
+              <div className="form-row">
+                <div>
+                  <label className="label">Favorite HYBE Artist/Group</label>
+                  <input className="input" value={favoriteArtist} onChange={e => setFavoriteArtist(e.target.value)} placeholder="e.g., BTS, NewJeans" />
+                </div>
+                <div>
+                  <label className="label">Bias Member</label>
+                  <input className="input" value={biasMember} onChange={e => setBiasMember(e.target.value)} placeholder="Member name" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div>
+                  <label className="label">Fan Since (Year)</label>
+                  <input className="input" inputMode="numeric" value={fanSinceYear} onChange={e => setFanSinceYear(e.target.value.replace(/[^0-9]/g, ''))} placeholder="2016" />
+                </div>
+                <div>
+                  <label className="label">Favorite Song/Album</label>
+                  <input className="input" value={favoriteSongAlbum} onChange={e => setFavoriteSongAlbum(e.target.value)} placeholder="Song or album" />
+                </div>
+              </div>
+              <div className="button-row mt-10">
+                <button className="button-secondary" type="button" onClick={() => setStep(1)}>Back</button>
+                <button className="button-primary" type="button" onClick={goNext} disabled={!stepValid}>Next</button>
+              </div>
             </div>
-            <div className="mt-10">
-              <ProgressBar value={total} max={20} />
-              <div className="subtle mt-6">Total Entries: {total}</div>
+          )}
+
+          {/* Step 3 */}
+          {step === 3 && (
+            <div className="form-step">
+              <div className="form-row">
+                <div>
+                  <label className="label">X (Twitter) Handle</label>
+                  <input className="input" value={twitter} onChange={e => setTwitter(e.target.value)} placeholder="@username" />
+                </div>
+                <div>
+                  <label className="label">Instagram Handle</label>
+                  <input className="input" value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@username" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div>
+                  <label className="label">TikTok Handle</label>
+                  <input className="input" value={tiktok} onChange={e => setTiktok(e.target.value)} placeholder="@username" />
+                </div>
+                <div>
+                  <label className="label">Fan Message</label>
+                  <input className="input" value={fanMessage} onChange={e => setFanMessage(e.target.value)} placeholder="Share a short message" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div>
+                  <label className="label">Fan Art URL (optional)</label>
+                  <input className="input" value={fanArtUrl} onChange={e => setFanArtUrl(e.target.value)} placeholder="https://example.com/my-art.jpg" />
+                </div>
+                <div>
+                  <label className="label">Trivia (optional)</label>
+                  <input className="input" value={triviaAnswer} onChange={e => setTriviaAnswer(e.target.value)} placeholder="Answer a fun trivia" />
+                </div>
+              </div>
+              <div className="button-row mt-10">
+                <button className="button-secondary" type="button" onClick={() => setStep(2)}>Back</button>
+                <button className="button-primary" type="button" onClick={goNext}>Next</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 */}
+          {step === 4 && (
+            <div className="form-step">
+              <div className="form-row">
+                <div>
+                  <label className="label">Referral Code (optional)</label>
+                  <input className="input" value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="Your friend\'s code" />
+                </div>
+                <div>
+                  <label className="label">Preferred Prize</label>
+                  <select className="input" value={preferredPrize} onChange={e => setPreferredPrize(e.target.value)}>
+                    <option value="">Select a prize</option>
+                    <option value="tesla">Tesla</option>
+                    <option value="crypto">$700k in Crypto</option>
+                    <option value="vip">VIP HYBE Experience</option>
+                  </select>
+                </div>
+              </div>
+              <div className="button-row mt-10">
+                <button className="button-secondary" type="button" onClick={() => setStep(3)}>Back</button>
+                <button className="button-primary" type="button" onClick={goNext} disabled={!validateEmail(email) || !fullName || !country || !consentTerms || !consentPrivacy}>Enter Giveaway</button>
+              </div>
+              <p className="form-note">We\'ll send a 6-digit code to verify your email.</p>
+            </div>
+          )}
+        </div>
+
+        {/* OTP Modal */}
+        {otpOpen && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Email Verification">
+            <div className="modal">
+              <h3>Verify your email</h3>
+              <p className="subtle">Enter the 6-digit code we sent to {email}</p>
+              <div className="otp-grid">
+                {otp.map((d, i) => (
+                  <input
+                    key={i}
+                    ref={el => (otpRefs[i].current = el)}
+                    className={`input otp ${d ? 'ok' : ''}`}
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={d}
+                    onChange={e => handleOtpInput(i, e.target.value)}
+                    onPaste={handleOtpPaste}
+                  />
+                ))}
+              </div>
+              <div className="button-row mt-8">
+                <button className="button-primary" onClick={verifyOtp}>Verify OTP</button>
+                <button className="button-secondary" onClick={resendOtp} disabled={secondsLeft > 0}>{secondsLeft > 0 ? `Resend in ${secondsLeft}s` : 'Resend OTP'}</button>
+                <button className="button-secondary" onClick={() => setOtpOpen(false)}>Cancel</button>
+              </div>
             </div>
           </div>
-        </form>
+        )}
+
+        {/* Password Modal */}
+        {pwOpen && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Create Password">
+            <div className="modal">
+              <h3>Create your password</h3>
+              <div className="form-group">
+                <label className="label">Password</label>
+                <div className="input-with-action">
+                  <input className="input" type={pwShow ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Strong password" />
+                  <button className="button-secondary" onClick={() => setPwShow(v => !v)} type="button">{pwShow ? 'Hide' : 'Show'}</button>
+                </div>
+                <div className="mt-4">
+                  <ProgressBar value={pwStrength * 20} max={100} />
+                  <div className="subtle mt-4">Use 8+ chars with upper/lowercase and a number or symbol.</div>
+                </div>
+              </div>
+              <div className="button-row mt-8">
+                <button className="button-primary" onClick={setUserPassword} disabled={!isStrongPassword(password)}>Set Password</button>
+                <button className="button-secondary" onClick={() => setPwOpen(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

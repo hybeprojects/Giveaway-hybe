@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { requestOtp, verifyOtp as verifyOtpFn, saveLocalSession, getLocalSession } from '../utils/auth';
+import { requestOtp, verifyOtp as verifyOtpFn, saveLocalSession, getLocalSession, loginWithPassword } from '../utils/auth';
 import { useToast } from '../components/Toast';
 
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
@@ -8,6 +8,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [usePassword, setUsePassword] = useState(true);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
@@ -36,12 +38,39 @@ export default function Login() {
     } finally { setLoading(false); }
   };
 
+  const loginPw = async () => {
+    if (!validateEmail(email) || password.length < 6) { toast.error('Enter email and password'); return; }
+    setLoading(true);
+    try {
+      const token = await loginWithPassword(email, password);
+      saveLocalSession(token);
+      window.location.href = '/dashboard';
+    } catch (e: any) {
+      toast.error(e.message || 'Login failed');
+    } finally { setLoading(false); }
+  };
+
   return (
     <section className="section" aria-label="Login">
       <div className="container">
         <h2 className="section-title">Sign in to your Giveaway</h2>
         <div className="card card-pad mt-12">
-          {!sent ? (
+          <div className="button-row mb-10">
+            <button className={`button-secondary${usePassword ? ' active' : ''}`} onClick={() => setUsePassword(true)} type="button">Use password</button>
+            <button className={`button-secondary${!usePassword ? ' active' : ''}`} onClick={() => setUsePassword(false)} type="button">Use one-time code</button>
+          </div>
+
+          {usePassword ? (
+            <div>
+              <label className="label">Email</label>
+              <input className="input" placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              <label className="label mt-6">Password</label>
+              <input className="input" type="password" placeholder="Your password" value={password} onChange={e => setPassword(e.target.value)} />
+              <div className="button-row mt-14">
+                <button className="button-primary" onClick={loginPw} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+              </div>
+            </div>
+          ) : !sent ? (
             <div>
               <label className="label">Email</label>
               <input className="input" placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} />
