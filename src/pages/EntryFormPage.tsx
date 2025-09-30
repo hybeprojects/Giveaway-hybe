@@ -67,7 +67,7 @@ const EntryFormPage = () => {
       favoriteArtist: '',
     }
   });
-  const [submissionStatus, setSubmissionStatus] = useState(null);
+  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
   const [submissionMessage, setSubmissionMessage] = useState('');
 
   const handleCloseModal = () => {
