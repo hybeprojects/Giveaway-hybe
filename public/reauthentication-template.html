@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Identity</title>
+  <style>
+    body, h1, p { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; }
+    .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; }
+    .content { background-color: #ffffff; padding: 30px; border-radius: 8px; text-align: center; }
+    .button { display: inline-block; padding: 12px 24px; margin: 20px 0; background-color: #ffc107; color: #212529; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    .footer { text-align: center; padding: 20px 0; color: #888888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="content">
+      <h2>Confirm Your Identity</h2>
+      <p>A sensitive action was requested for your [YourApp] account, which requires you to re-authenticate. Please click the button below to confirm your identity.</p>
+
+      <!-- Supabase reauthentication confirmation variable -->
+      <a href="{{ .ConfirmationURL }}" class="button">Confirm Identity</a>
+
+      <p>If you did not attempt this action, please change your password immediately and contact our support team.</p>
+      <p><em>- The [YourApp] Team</em></p>
+    </div>
+    <div class="footer">
+      <p>&copy; 2024 [YourApp]. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
