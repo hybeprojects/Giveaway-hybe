@@ -328,6 +328,19 @@ img, video {
   text-align: center;
 }
 
+/* Entry CTA group */
+.entry-cta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+.cta-button-wide {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
 .button-primary {
   background-color: var(--hybe-yellow);
   color: var(--hybe-black);
@@ -393,6 +406,33 @@ img, video {
   backdrop-filter: blur(4px);
 }
 
+/* Route loading overlay */
+.route-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(4px);
+}
+.loading-dialog {
+  background: var(--hybe-black);
+  color: var(--hybe-white);
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #333;
+}
+.loading-text { font-size: 0.95rem; color: var(--hybe-white); }
+
 .modal-content {
   background: var(--hybe-white);
   padding: 2rem;
@@ -402,6 +442,8 @@ img, video {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--hybe-black);
 }
+.modal-content h2 { color: var(--hybe-black); margin: 0.25rem 0 0.5rem; }
+.modal-title-label { font-size: 0.8rem; letter-spacing: 0.08em; color: #666; text-transform: uppercase; margin: 0; }
 
 .button-row {
   display: flex;
