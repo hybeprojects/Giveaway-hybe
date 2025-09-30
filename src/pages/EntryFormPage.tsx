@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
+import Navbar from '../sections/Navbar';
+import Footer from '../sections/Footer';
 
 // Data arrays for form fields
 const countries = [
@@ -44,7 +46,7 @@ const favoriteArtists = [
 ];
 
 const EntryFormPage: React.FC = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, reset } = useForm({
+  const { register, formState: { errors }, control } = useForm({
     defaultValues: {
       referralCode: '',
       fullName: '',
@@ -66,41 +68,16 @@ const EntryFormPage: React.FC = () => {
     }
   });
 
-  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
-  const [submissionMessage, setSubmissionMessage] = useState('');
-
-  const onSubmit = async (data: any) => {
-    setSubmissionStatus(null);
-    setSubmissionMessage('');
-    try {
-      const response = await fetch('/.netlify/functions/submit-to-formspree', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        setSubmissionStatus('success');
-        setSubmissionMessage('Thank you for your submission!');
-        reset();
-      } else {
-        setSubmissionStatus('error');
-        setSubmissionMessage('Form submission failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setSubmissionStatus('error');
-      setSubmissionMessage('An error occurred. Please try again.');
-    }
-  };
-
   return (
-    <div className="entry-form-page container mt-5">
-      <h1 className="text-center mb-4">Giveaway Entry Form</h1>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="row">
-          {/* Personal Information Section */}
-          <div className="col-md-6 mb-4">
+    <>
+      <Navbar />
+      <div className="entry-form-page container mt-5">
+        <h1 className="text-center mb-4">Giveaway Entry Form</h1>
+        <form name="entry" data-netlify="true" method="POST">
+          <input type="hidden" name="form-name" value="entry" />
+          <div className="row">
+            {/* Personal Information Section */}
+            <div className="col-md-6 mb-4">
             <fieldset className="border p-3 h-100">
               <legend className="w-auto h5">Personal Information</legend>
               <div className="mb-3">
@@ -241,17 +218,14 @@ const EntryFormPage: React.FC = () => {
               This official HYBE initiative celebrates our artists and engages with our global fan community. The selection process is random and monitored for fairness.
             </p>
           </div>
-          {submissionStatus && (
-            <div className={`alert alert-${submissionStatus === 'success' ? 'success' : 'danger'} mt-3`}>
-              {submissionMessage}
-            </div>
-          )}
-          <button type="submit" className="button-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+          <button type="submit" className="button-primary">
+            Submit Entry
           </button>
         </div>
       </form>
     </div>
+    <Footer />
+    </>
   );
 };
 
