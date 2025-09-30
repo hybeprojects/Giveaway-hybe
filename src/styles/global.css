@@ -442,6 +442,8 @@ img, video {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--hybe-black);
 }
+.modal-content h2 { color: var(--hybe-black); margin: 0.25rem 0 0.5rem; }
+.modal-title-label { font-size: 0.8rem; letter-spacing: 0.08em; color: #666; text-transform: uppercase; margin: 0; }
 
 .button-row {
   display: flex;
