@@ -19,8 +19,9 @@ export default function Hero() {
           <Countdown target={target} />
         </div>
         <div className="cta-row">
-          <a className="button-primary" href="#enter">Enter the Giveaway</a>
-          <a className="button-secondary" href="#prizes">Explore Prizes</a>
+          <a className="button-primary" href="/enter">Enter the Giveaway</a>
+          <a className="button-secondary" href="/enter">Enter Now for a Chance to Win</a>
+          <a className="button-secondary" href="/enter">Enter Now</a>
         </div>
       </div>
     </section>
