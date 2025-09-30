@@ -21,10 +21,11 @@ export default function OnboardingModal({ isOpen, onClose }: Props) {
 
   return (
     <>
-      {showConfetti && <Confetti />}
+      {showConfetti && <Confetti style={{ zIndex: 900, pointerEvents: 'none' }} />}
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={e => e.stopPropagation()}>
-          <h2>Welcome to the BTS Giveaway!</h2>
+        <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="onboard-heading" onClick={e => e.stopPropagation()}>
+          <p className="modal-title-label">Onboarding</p>
+          <h2 id="onboard-heading">Welcome to the BTS Giveaway!</h2>
           <p className="subtle mt-10">
             This giveaway celebrates BTS’s upcoming shows and tours, bringing ARMY closer to the action.
           </p>
