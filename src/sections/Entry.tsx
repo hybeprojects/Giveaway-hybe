@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageTransition from '../components/PageTransition';
 
 export default function Entry() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnter = (e?: React.MouseEvent<HTMLButtonElement>) => {
-    if (e) e.preventDefault();
-    if (isLoading) return;
-    setIsLoading(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => navigate('/entry'), 600);
+  const handleEnter = () => {
+    navigate('/entry');
   };
 
   return (
@@ -20,24 +15,16 @@ export default function Entry() {
         <p className="section-subtitle">Complete the form to enter and boost your chances by sharing with friends.</p>
         <div className="entry-cta-group">
           <button onClick={handleEnter} className="button-primary cta-button-wide" aria-label="Enter the giveaway">
-            ENTER THE GIVEAWAY
+            <PageTransition>ENTER THE GIVEAWAY</PageTransition>
           </button>
           <button onClick={handleEnter} className="button-primary cta-button-wide" aria-label="Enter now for a chance to win">
-            ENTER NOW FOR A CHANCE TO WIN
+            <PageTransition>ENTER NOW FOR A CHANCE TO WIN</PageTransition>
           </button>
           <button onClick={handleEnter} className="button-primary cta-button-wide" aria-label="Enter now">
-            ENTER NOW
+            <PageTransition>ENTER NOW</PageTransition>
           </button>
         </div>
       </div>
-      {isLoading && (
-        <div className="route-loading-overlay" role="dialog" aria-modal="true" aria-label="Loading">
-          <div className="loading-dialog">
-            <div className="spinner-border text-light" role="status" aria-hidden="true"></div>
-            <p className="loading-text">Preparing your entry...</p>
-          </div>
-        </div>
-      )}
     </section>
   );
 }
