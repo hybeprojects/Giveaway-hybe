@@ -97,6 +97,8 @@ describe('send-otp handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(400);
-    expect(JSON.parse(response.body).error).toBe('Failed to send OTP.');
+    expect(JSON.parse(response.body).error).toBe(
+      'Failed to send OTP. Please contact support, as email templates may be misconfigured.'
+    );
   });
 });

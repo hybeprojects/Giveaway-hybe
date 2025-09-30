@@ -42,7 +42,9 @@ const handler = async (event) => {
       });
       const isUserNotFound = /user.*not.*found/i.test(error.message);
       const statusCode = isUserNotFound ? 404 : 400;
-      const errorMessage = isUserNotFound ? 'Email not found. Please sign up first.' : 'Failed to send OTP.';
+      const errorMessage = isUserNotFound
+        ? 'Email not found. Please sign up first.'
+        : 'Failed to send OTP. Please contact support, as email templates may be misconfigured.';
       return { statusCode, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
     }
 
