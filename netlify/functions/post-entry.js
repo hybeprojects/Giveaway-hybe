@@ -70,6 +70,20 @@ const handler = async (event) => {
       return { statusCode: 409, body: JSON.stringify({ ok: false, error: 'Entry already exists for this email' }) };
     }
 
+    // Validate referral code
+    const validReferralCode = '#BTS2026';
+    let welcomeBonus = 100;
+    let bonusNote = 'Welcome bonus';
+
+    if (referral_code) {
+      if (referral_code === validReferralCode) {
+        welcomeBonus = 200;
+        bonusNote = 'Welcome bonus (with valid referral code)';
+      } else {
+        return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid referral code' }) };
+      }
+    }
+
     // Insert new entry
     const payload = {
       email,
@@ -101,9 +115,9 @@ const handler = async (event) => {
     const { error: ledgerError } = await supabase.from('ledger_entries').insert({
       email,
       type: 'credit',
-      amount: 100,
+      amount: welcomeBonus,
       currency: 'points',
-      note: 'Welcome bonus',
+      note: bonusNote,
       status: 'available'
     });
     if (ledgerError) console.error('Ledger bonus failed', ledgerError);

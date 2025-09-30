@@ -81,8 +81,8 @@ const EntryFormPage: React.FC = () => {
             <fieldset className="border p-3 h-100">
               <legend className="w-auto h5">Personal Information</legend>
               <div className="mb-3">
-                <label htmlFor="referral-code" className="form-label">Referral Code <span className="text-danger">*</span></label>
-                <input type="text" id="referral-code" className={`form-control ${errors.referralCode ? 'is-invalid' : ''}`} {...register("referralCode", { required: "Referral code is required." })} />
+                <label htmlFor="referral-code" className="form-label">Referral Code</label>
+                <input type="text" id="referral-code" className={`form-control ${errors.referralCode ? 'is-invalid' : ''}`} {...register("referralCode")} placeholder="(Optional)" />
                 {errors.referralCode && <div className="invalid-feedback">{errors.referralCode.message}</div>}
               </div>
               <div className="mb-3">
