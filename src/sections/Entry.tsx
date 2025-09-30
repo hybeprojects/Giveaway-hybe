@@ -3,7 +3,22 @@ import ProgressBar from '../components/ProgressBar';
 import { useToast } from '../components/Toast';
 import * as auth from '../utils/auth';
 
-function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
+function validateEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+}
+function validatePhone(v: string) {
+  const digits = v.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15; // lenient E.164 style
+}
+function validateBirthdate(v: string) {
+  if (!v) return true; // optional
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  if (d > now) return false;
+  const age = now.getFullYear() - d.getFullYear() - (now < new Date(now.getFullYear(), d.getMonth(), d.getDate()) ? 1 : 0);
+  return age >= 13;
+}
 function isStrongPassword(pw: string) {
   if (!pw || pw.length < 8) return false;
   const hasLower = /[a-z]/.test(pw);
@@ -55,6 +70,13 @@ export default function Entry() {
   const [consentPrivacy, setConsentPrivacy] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
 
+  // Field errors
+  const [nameErr, setNameErr] = useState('');
+  const [emailErr, setEmailErr] = useState('');
+  const [phoneErr, setPhoneErr] = useState('');
+  const [dobErr, setDobErr] = useState('');
+  const [countryErr, setCountryErr] = useState('');
+
   // Step 2: Fan Info
   const [favoriteArtist, setFavoriteArtist] = useState('');
   const [biasMember, setBiasMember] = useState('');
@@ -104,27 +126,36 @@ export default function Entry() {
 
   const stepValid = useMemo(() => {
     if (step === 1) {
-      return fullName.trim() && validateEmail(email) && country && consentTerms && consentPrivacy;
+      const ok = fullName.trim().length > 1 && validateEmail(email) && (!phone || validatePhone(phone)) && validateBirthdate(birthdate) && country && consentTerms && consentPrivacy;
+      return ok;
     }
     if (step === 2) {
       return favoriteArtist.trim() && fanSinceYear.trim();
     }
     if (step === 3) {
-      return true; // optional fields
+      return true;
     }
     if (step === 4) {
-      return true; // all optional here too
+      return true;
     }
     return false;
-  }, [step, fullName, email, country, consentTerms, consentPrivacy, favoriteArtist, fanSinceYear]);
+  }, [step, fullName, email, phone, birthdate, country, consentTerms, consentPrivacy, favoriteArtist, fanSinceYear]);
 
   const goNext = async () => {
-    if (!stepValid) return;
+    if (!stepValid) {
+      if (step === 1) {
+        setNameErr(!fullName.trim() ? 'Please enter your full name' : '');
+        setEmailErr(!validateEmail(email) ? 'Enter a valid email address' : '');
+        setPhoneErr(phone && !validatePhone(phone) ? 'Enter a valid phone number' : '');
+        setDobErr(!validateBirthdate(birthdate) ? 'Enter a valid date (13+)' : '');
+        setCountryErr(!country ? 'Please select your country/region' : '');
+      }
+      return;
+    }
     if (step < totalSteps) {
       setStep(s => s + 1);
       return;
     }
-    // Final submit → trigger OTP
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     try {
       await auth.requestOtp(email, 'signup');
@@ -246,31 +277,36 @@ export default function Entry() {
 
           {/* Step 1 */}
           {step === 1 && (
-            <div className="form-step">
+            <div className="form-step" role="group" aria-labelledby="eligibility-head">
+              <h3 id="eligibility-head" className="visually-hidden">Eligibility</h3>
               <div className="form-row">
                 <div>
-                  <label className="label">Full Name</label>
-                  <input className="input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
+                  <label className="label" htmlFor="full-name">Full Name</label>
+                  <input id="full-name" className={`input${nameErr ? ' invalid' : ''}`} aria-invalid={!!nameErr} aria-describedby={nameErr ? 'name-error' : undefined} value={fullName} onChange={e => { setFullName(e.target.value); if (e.target.value.trim()) setNameErr(''); }} placeholder="Your full name" />
+                  {nameErr && <div id="name-error" className="field-error">{nameErr}</div>}
                 </div>
                 <div>
-                  <label className="label">Email</label>
-                  <input className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+                  <label className="label" htmlFor="email">Email</label>
+                  <input id="email" className={`input${emailErr ? ' invalid' : ''}`} aria-invalid={!!emailErr} aria-describedby={emailErr ? 'email-error' : undefined} value={email} onChange={e => { setEmail(e.target.value); if (validateEmail(e.target.value)) setEmailErr(''); }} placeholder="name@example.com" />
+                  {emailErr && <div id="email-error" className="field-error">{emailErr}</div>}
                 </div>
               </div>
               <div className="form-row">
                 <div>
-                  <label className="label">Phone</label>
-                  <input className="input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
+                  <label className="label" htmlFor="phone">Phone</label>
+                  <input id="phone" className={`input${phoneErr ? ' invalid' : ''}`} aria-invalid={!!phoneErr} aria-describedby={phoneErr ? 'phone-error' : undefined} value={phone} onChange={e => { setPhone(e.target.value); if (!e.target.value || validatePhone(e.target.value)) setPhoneErr(''); }} placeholder="+1 555 123 4567" />
+                  {phoneErr && <div id="phone-error" className="field-error">{phoneErr}</div>}
                 </div>
                 <div>
-                  <label className="label">Birthdate</label>
-                  <input className="input" type="date" value={birthdate} onChange={e => setBirthdate(e.target.value)} />
+                  <label className="label" htmlFor="dob">Birthdate</label>
+                  <input id="dob" className={`input${dobErr ? ' invalid' : ''}`} aria-invalid={!!dobErr} aria-describedby={dobErr ? 'dob-error' : undefined} type="date" value={birthdate} onChange={e => { setBirthdate(e.target.value); if (validateBirthdate(e.target.value)) setDobErr(''); }} />
+                  {dobErr && <div id="dob-error" className="field-error">{dobErr}</div>}
                 </div>
               </div>
               <div className="form-row">
                 <div>
-                  <label className="label">Country/Region</label>
-                  <select className="input" value={country} onChange={e => setCountry(e.target.value)}>
+                  <label className="label" htmlFor="country">Country/Region</label>
+                  <select id="country" className={`input${countryErr ? ' invalid' : ''}`} aria-invalid={!!countryErr} aria-describedby={countryErr ? 'country-error' : undefined} value={country} onChange={e => { setCountry(e.target.value); if (e.target.value) setCountryErr(''); }}>
                     <option value="">Select your country</option>
                     <option>United States</option>
                     <option>Canada</option>
@@ -280,6 +316,7 @@ export default function Entry() {
                     <option>Germany</option>
                     <option>Australia</option>
                   </select>
+                  {countryErr && <div id="country-error" className="field-error">{countryErr}</div>}
                 </div>
                 <div />
               </div>
