@@ -15,8 +15,10 @@ import OnboardingModal from './components/OnboardingModal';
 import EntryFormPage from './pages/EntryFormPage';
 
 function Landing() {
+  const [showOnboard, setShowOnboard] = useState(true);
   return (
     <>
+      <OnboardingModal isOpen={showOnboard} onClose={() => setShowOnboard(false)} />
       <Navbar />
       <Hero />
       <Prizes />
