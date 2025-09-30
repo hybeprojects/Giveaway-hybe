@@ -2,14 +2,14 @@ import supabase from './utils/supabase.js';
 
 // IMPORTANT: Supabase email template customization
 // This function relies on the email templates configured in your Supabase project dashboard.
-// To ensure that users receive a one-time password (OTP), you MUST customize the "Magic Link"
-// email template to include the `{{ .Token }}` variable.
+// To send a 6-digit OTP, you MUST customize the "Confirm signup" template.
+// Ensure the template includes the `{{ .Token }}` variable.
 //
 // Example template:
 // <h2>Your One-Time Password</h2>
 // <p>Your one-time password is: <strong>{{ .Token }}</strong></p>
 //
-// If the `{{ .Token }}` variable is not present, users may receive a blank or incomplete email.
+// A misconfigured template will prevent users from receiving the code.
 // For more information, visit the Supabase documentation on email templates.
 
 const handler = async (event) => {
@@ -44,7 +44,7 @@ const handler = async (event) => {
       const statusCode = isUserNotFound ? 404 : 400;
       const errorMessage = isUserNotFound
         ? 'Email not found. Please sign up first.'
-        : 'Failed to send OTP. Please contact support, as email templates may be misconfigured.';
+        : 'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.';
       return { statusCode, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
     }
 

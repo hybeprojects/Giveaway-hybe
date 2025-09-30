@@ -59,8 +59,8 @@ export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'l
   if (!typed.ok) throw new Error(typed.error || 'Failed to send code');
 }
 
-export async function verifyOtp(email: string, code: string): Promise<string> {
-  const body = JSON.stringify({ email, code });
+export async function verifyOtp(email: string, code: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
+  const body = JSON.stringify({ email, code, purpose });
   const endpoint = '/.netlify/functions/verify-otp';
 
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });

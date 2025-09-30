@@ -136,7 +136,7 @@ export default function Entry() {
                   setLoading(true);
                   try {
                     const auth = await import('../utils/auth');
-                    const session = await auth.verifyOtp(email, code);
+                    const session = await auth.verifyOtp(email, code, 'signup');
                     auth.saveLocalSession(session);
                     try {
                       const sessionToken = localStorage.getItem('local_session') || '';
