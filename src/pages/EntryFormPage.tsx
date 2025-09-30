@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import OnboardingModal from '../components/OnboardingModal';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
@@ -45,7 +44,6 @@ const favoriteArtists = [
 
 
 const EntryFormPage = () => {
-  const [isModalOpen, setModalOpen] = useState(true);
   const { register, handleSubmit, formState: { errors, isSubmitting }, control, reset } = useForm({
     defaultValues: {
       referralCode: '',
@@ -70,9 +68,6 @@ const EntryFormPage = () => {
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
   const [submissionMessage, setSubmissionMessage] = useState('');
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-  };
 
   const onSubmit = async (data) => {
     setSubmissionStatus(null);
@@ -103,8 +98,7 @@ const EntryFormPage = () => {
 
   return (
     <div className="entry-form-page">
-      <OnboardingModal isOpen={isModalOpen} onClose={handleCloseModal} />
-      <form onSubmit={handleSubmit(onSubmit)} style={{ visibility: isModalOpen ? 'hidden' : 'visible' }}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         {/* Referral Code */}
         <div className="mb-3 position-relative">
           <label htmlFor="referral-code" className="form-label">
