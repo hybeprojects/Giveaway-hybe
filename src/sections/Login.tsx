@@ -30,13 +30,23 @@ export default function Login() {
   }, [sent, resendIn]);
 
   const send = async () => {
-    if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
+    setFormError(null);
+    if (!validateEmail(email)) {
+      setFieldErrors({ email: 'Enter a valid email address' });
+      toast.error('Enter a valid email');
+      return;
+    }
     setLoading(true);
     try {
       await requestOtp(email, 'login');
       setSent(true);
+      setResendIn(60);
+      setFieldErrors({});
+      toast.success('Verification code sent');
     } catch (e: any) {
-      toast.error(e.message || 'Failed to send code');
+      const msg = e?.message || 'Failed to send code';
+      setFormError(msg);
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 
