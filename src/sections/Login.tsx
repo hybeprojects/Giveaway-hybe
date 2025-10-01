@@ -34,7 +34,7 @@ export default function Login() {
     try {
       const session = await verifyOtpFn(email, code.trim());
       saveLocalSession(session);
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (e: any) {
       toast.error(e.message || 'Invalid or expired code');
     } finally { setLoading(false); }
@@ -46,7 +46,7 @@ export default function Login() {
     try {
       const token = await loginWithPassword(email, password);
       saveLocalSession(token);
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (e: any) {
       toast.error(e.message || 'Login failed');
     } finally { setLoading(false); }
