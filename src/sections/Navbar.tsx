@@ -48,12 +48,12 @@ export default function Navbar() {
           <button className="nav-button" onClick={() => handleScroll('prizes')}>Prizes</button>
           <button className="nav-button" onClick={() => handleScroll('vip')}>VIP Experience</button>
           <button className="nav-button" onClick={() => handleScroll('enter')}>Enter Now</button>
-          <Link className="nav-button" to="/entry">Entry Form</Link>
+          <Link className="nav-button" to="/entry" onClick={() => setIsMenuOpen(false)}>Entry Form</Link>
           <button className="nav-button" onClick={() => handleScroll('updates')}>Live Updates</button>
           {isAuthed ? (
-            <Link className="nav-button" to="/dashboard">Dashboard</Link>
+            <Link className="nav-button" to="/dashboard" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
           ) : (
-            <Link className="nav-button" to="/login">Login</Link>
+            <Link className="nav-button" to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
           )}
         </nav>
       </div>
