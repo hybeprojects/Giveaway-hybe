@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 function validateEmail(v: string) { return /.+@.+\..+/.test(v); }
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
@@ -14,7 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
-  useEffect(() => { const s = getLocalSession(); if (s) window.location.href = '/dashboard'; }, []);
+  useEffect(() => { const s = getLocalSession(); if (s) navigate('/dashboard'); }, [navigate]);
 
   const send = async () => {
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
