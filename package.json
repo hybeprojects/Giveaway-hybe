@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build",
     "preview": "vite preview --port 3000",
-    "start": "node server.js"
+    "start": "vite preview --port 3000"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
