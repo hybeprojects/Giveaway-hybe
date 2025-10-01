@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Countdown from '../components/Countdown';
 
 const VIDEO_URL = "https://assets.mixkit.co/videos/preview/mixkit-traveling-through-a-tunnel-of-black-cubes-in-3d-31497-large.mp4";
@@ -19,7 +20,7 @@ export default function Hero() {
           <Countdown target={target} />
         </div>
         <div className="cta-row">
-          <a className="button-primary" href="#enter">Enter the Giveaway</a>
+          <Link className="button-primary" to="/entry">Enter the Giveaway</Link>
           <a className="button-secondary" href="#prizes">Explore Prizes</a>
         </div>
       </div>
