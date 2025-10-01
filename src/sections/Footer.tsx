@@ -16,9 +16,9 @@ export default function Footer() {
               <a className="footer-link" href="#">Contact Us</a>
             </nav>
             <div className="social-links">
-              <a href="#" aria-label="Twitter" className="social-icon"><FaTwitter /></a>
-              <a href="#" aria-label="Instagram" className="social-icon"><FaInstagram /></a>
-              <a href="#" aria-label="Facebook" className="social-icon"><FaFacebook /></a>
+              <a href="https://twitter.com/HYBEOFFICIALtwt" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="social-icon"><FaTwitter /></a>
+              <a href="https://www.instagram.com/hybe_official/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="social-icon"><FaInstagram /></a>
+              <a href="https://www.facebook.com/HYBEOFFICIALfb" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="social-icon"><FaFacebook /></a>
             </div>
           </div>
         </div>
