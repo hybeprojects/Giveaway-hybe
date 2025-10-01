@@ -51,14 +51,22 @@ export default function Login() {
   };
 
   const verify = async () => {
-    if (code.trim().length !== 6 || !/^\d{6}$/.test(code)) { toast.error('Enter the 6-digit code'); return; }
+    setFormError(null);
+    if (code.trim().length !== 6 || !/^\d{6}$/.test(code)) {
+      setFieldErrors({ code: 'Enter the 6‑digit code' });
+      toast.error('Enter the 6-digit code');
+      return;
+    }
     setLoading(true);
     try {
       const session = await verifyOtpFn(email, code.trim());
       saveLocalSession(session);
+      toast.success('Signed in');
       navigate('/dashboard');
     } catch (e: any) {
-      toast.error(e.message || 'Invalid or expired code');
+      const msg = e?.message || 'Invalid or expired code';
+      setFormError(msg);
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 
