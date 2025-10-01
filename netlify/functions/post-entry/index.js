@@ -122,6 +122,13 @@ const handler = async (event) => {
     });
     if (ledgerError) console.error('Ledger bonus failed', ledgerError);
 
+    // Fire-and-forget event log
+    try {
+      await supabase.from('events').insert({ type: 'entry', text: `${full_name || email} entered the giveaway`, meta: { email, country, referral_code: referral_code || null } });
+    } catch (e) {
+      console.warn('Event insert failed', e);
+    }
+
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (e) {
     console.error('Error in /post-entry function:', e);
