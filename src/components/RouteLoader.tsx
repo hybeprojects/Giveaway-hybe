@@ -51,7 +51,7 @@ export default function RouteLoader() {
       }
 
       // Safety: if polling takes too long, stop waiting and hide anyway
-      if (!settled && Date.now() - startedAt > 10000) {
+      if (!settled && Date.now() - startedAt > 5000) {
         settled = true;
         hideTimer.current = window.setTimeout(() => setVisible(false), 300);
         if (pollTimer.current) window.clearInterval(pollTimer.current);
