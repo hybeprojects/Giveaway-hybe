@@ -484,7 +484,27 @@ img, video {
 }
 
 /* Layout helpers */
-.hamburger-menu { display: none; }
+.hamburger-menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1000;
+}
+.hamburger-menu .bar {
+  width: 2rem;
+  height: 0.25rem;
+  background-color: var(--hybe-black);
+  border-radius: 10px;
+  transition: all 0.3s linear;
+  position: relative;
+  transform-origin: 1px;
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
 /* Box sizing for consistent layouts */
