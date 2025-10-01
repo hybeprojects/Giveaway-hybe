@@ -120,20 +120,45 @@ export default function Login() {
                 <button className={`button-secondary${!usePassword ? ' active' : ''}`} onClick={() => setUsePassword(false)} type="button">Use one-time code</button>
               </div>
 
+              {formError && (
+                <div className="alert alert-danger" role="alert" aria-live="assertive">{formError}</div>
+              )}
+
               {usePassword ? (
                 <div>
                   <label className="label" htmlFor="login-email">Email</label>
                   <div className="auth-field">
                     <FiMail className="auth-icon-left" aria-hidden="true" />
-                    <input id="login-email" className="input auth-input" placeholder="name@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    <input
+                      id="login-email"
+                      className={`input auth-input${fieldErrors.email ? ' is-invalid' : ''}`}
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      aria-invalid={!!fieldErrors.email}
+                      aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+                      value={email}
+                      onChange={e => { setEmail(e.target.value); setFieldErrors(prev => ({ ...prev, email: undefined })); }}
+                    />
                   </div>
+                  {fieldErrors.email && <div id="login-email-error" className="invalid-feedback" role="alert">{fieldErrors.email}</div>}
 
                   <label className="label mt-6" htmlFor="login-password">Password</label>
                   <div className="auth-field">
                     <FiLock className="auth-icon-left" aria-hidden="true" />
-                    <input id="login-password" className="input auth-input" type={showPassword ? 'text' : 'password'} placeholder="Your password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+                    <input
+                      id="login-password"
+                      className={`input auth-input${fieldErrors.password ? ' is-invalid' : ''}`}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Your password"
+                      autoComplete="current-password"
+                      aria-invalid={!!fieldErrors.password}
+                      aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                      value={password}
+                      onChange={e => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: undefined })); }}
+                    />
                     <button className="auth-eye" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(v => !v)}>{showPassword ? <FiEyeOff /> : <FiEye />}</button>
                   </div>
+                  {fieldErrors.password && <div id="login-password-error" className="invalid-feedback" role="alert">{fieldErrors.password}</div>}
 
                   <div className="button-row mt-14">
                     <button className="button-primary" onClick={loginPw} disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
@@ -144,8 +169,18 @@ export default function Login() {
                   <label className="label" htmlFor="otp-email">Email</label>
                   <div className="auth-field">
                     <FiMail className="auth-icon-left" aria-hidden="true" />
-                    <input id="otp-email" className="input auth-input" placeholder="name@example.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />
+                    <input
+                      id="otp-email"
+                      className={`input auth-input${fieldErrors.email ? ' is-invalid' : ''}`}
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      aria-invalid={!!fieldErrors.email}
+                      aria-describedby={fieldErrors.email ? 'otp-email-error' : undefined}
+                      value={email}
+                      onChange={e => { setEmail(e.target.value); setFieldErrors(prev => ({ ...prev, email: undefined })); }}
+                    />
                   </div>
+                  {fieldErrors.email && <div id="otp-email-error" className="invalid-feedback" role="alert">{fieldErrors.email}</div>}
                   <div className="button-row mt-14">
                     <button className="button-primary" onClick={send} disabled={loading}>{loading ? 'Sending…' : 'Send 6‑digit code'}</button>
                   </div>
@@ -154,10 +189,23 @@ export default function Login() {
               ) : (
                 <div>
                   <label className="label" htmlFor="otp-code">Enter 6‑digit code</label>
-                  <input id="otp-code" className="input" inputMode="numeric" maxLength={6} placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} />
+                  <input
+                    id="otp-code"
+                    className={`input${fieldErrors.code ? ' is-invalid' : ''}`}
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    aria-invalid={!!fieldErrors.code}
+                    aria-describedby={fieldErrors.code ? 'otp-code-error' : undefined}
+                    value={code}
+                    onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, '')); setFieldErrors(prev => ({ ...prev, code: undefined })); }}
+                  />
+                  {fieldErrors.code && <div id="otp-code-error" className="invalid-feedback" role="alert">{fieldErrors.code}</div>}
+
                   <div className="button-row mt-14">
                     <button className="button-primary" onClick={verify} disabled={loading}>{loading ? 'Verifying…' : 'Verify & Continue'}</button>
-                    <button className="button-secondary" onClick={() => setSent(false)} disabled={loading}>Change email</button>
+                    <button className="button-secondary" onClick={() => { setSent(false); setCode(''); }} disabled={loading}>Change email</button>
+                    <button className="button-secondary" onClick={send} disabled={loading || resendIn > 0}>{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
                   </div>
                 </div>
               )}
