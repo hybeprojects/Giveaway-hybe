@@ -4,12 +4,20 @@ type Item = { q: string; a: string };
 
 function QA({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
+  const contentId = `${item.q.replace(/\s+/g, '-').toLowerCase()}-answer`;
   return (
     <div className="card card-pad">
-      <button className="nav-link full-width text-start" onClick={() => setOpen(v => !v)} aria-expanded={open}>
+      <button
+        className="nav-link faq-toggle full-width text-start"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        aria-controls={contentId}
+      >
         {item.q}
       </button>
-      {open && <p className="subtle mt-8">{item.a}</p>}
+      {open && (
+        <p id={contentId} className="subtle mt-8 faq-answer">{item.a}</p>
+      )}
     </div>
   );
 }
@@ -21,7 +29,7 @@ export default function FAQ() {
     { q: 'What are the legal terms?', a: 'Participation is subject to HYBE Corp terms and conditions and local regulations.' }
   ];
   return (
-    <div className="grid" style={{ gap: 12 }}>
+    <div className="faq-grid">
       {items.map((it, i) => <QA key={i} item={it} />)}
     </div>
   );
