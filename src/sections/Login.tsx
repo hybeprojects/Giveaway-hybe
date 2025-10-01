@@ -71,14 +71,27 @@ export default function Login() {
   };
 
   const loginPw = async () => {
-    if (!validateEmail(email) || password.length < 6) { toast.error('Enter email and password'); return; }
+    setFormError(null);
+    if (!validateEmail(email)) {
+      setFieldErrors({ email: 'Enter a valid email address' });
+      toast.error('Enter a valid email');
+      return;
+    }
+    if (password.length < 6) {
+      setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 6 characters' }));
+      toast.error('Check your password');
+      return;
+    }
     setLoading(true);
     try {
       const token = await loginWithPassword(email, password);
       saveLocalSession(token);
+      toast.success('Signed in');
       navigate('/dashboard');
     } catch (e: any) {
-      toast.error(e.message || 'Login failed');
+      const msg = e?.message || 'Login failed';
+      setFormError(msg);
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 
