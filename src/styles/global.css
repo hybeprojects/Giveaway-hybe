@@ -69,9 +69,23 @@ img, video {
 }
 
 .nav-links {
-  display: flex;
+  display: none;
+  flex-direction: column;
   gap: 1.5rem;
   align-items: center;
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: var(--hybe-white);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 1rem 0;
+  z-index: 999;
+}
+
+.nav-links.open {
+  display: flex;
 }
 
 .nav-button {
