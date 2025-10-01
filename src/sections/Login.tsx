@@ -109,7 +109,7 @@ export default function Login() {
 
           <div>
             <div className="auth-brand">
-              <img src="/hybe-logo.svg" alt="HYBE" />
+              <img src="/hybe-logo.svg" alt="HYBE" loading="lazy" decoding="async" />
               <div className="auth-tagline">Official Giveaway Portal</div>
             </div>
 

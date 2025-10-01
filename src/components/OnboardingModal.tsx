@@ -1,27 +1,36 @@
-import { useState, useEffect } from 'react';
-import Confetti from 'react-confetti';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
 };
 
+const LazyConfetti = lazy(() => import('react-confetti'));
+
 export default function OnboardingModal({ isOpen, onClose }: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
+  const reduceMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
   useEffect(() => {
-    if (isOpen) {
-      setShowConfetti(true);
+    let timeout: number | undefined;
+    if (isOpen && !reduceMotion) {
+      timeout = window.setTimeout(() => setShowConfetti(true), 150);
+      const stopId = window.setTimeout(() => setShowConfetti(false), 3500);
+      return () => { window.clearTimeout(timeout); window.clearTimeout(stopId); };
     } else {
       setShowConfetti(false);
     }
-  }, [isOpen]);
+  }, [isOpen, reduceMotion]);
 
   if (!isOpen) return null;
 
   return (
     <>
-      {showConfetti && <Confetti className="confetti-layer" />}
+      {showConfetti && (
+        <Suspense fallback={null}>
+          <LazyConfetti className="confetti-layer" numberOfPieces={120} gravity={0.25} recycle={false} />
+        </Suspense>
+      )}
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="onboard-heading" onClick={e => e.stopPropagation()}>
           <p className="modal-title-label">Onboarding</p>

@@ -37,7 +37,7 @@ export default function Navbar() {
     <header className="sticky-nav">
       <div className="container navbar">
         <div className="brand-row">
-          <img src="/hybe-logo.svg" width="80" alt="HYBE" />
+          <img src="/hybe-logo.svg" width="80" alt="HYBE" decoding="async" />
         </div>
         <div className="hamburger-menu" onClick={toggleMenu}>
           <div className="bar"></div>
