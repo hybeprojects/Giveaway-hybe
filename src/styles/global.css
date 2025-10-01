@@ -406,6 +406,9 @@ img, video {
   filter: invert(1);
 }
 
+/* Ensure footer brand logo is visible on dark footer */
+.footer-logo { filter: invert(1); }
+
 /* Modal styles */
 .modal-overlay {
   position: fixed;
