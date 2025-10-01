@@ -1,51 +1,53 @@
 {
-  "workspaceSnapshot": {
-    "gitStatus": "HEAD detached at 1d5eec3, working tree clean",
-    "nodeVersion": "v22.17.1",
-    "npmVersion": "11.5.1"
+  "framework": {"frontend": "react+vite", "language": "ts", "functions": "netlify"},
+  "packageManager": "npm",
+  "steps": {
+    "snapshot": {"status": "partial", "details": "Versions not collected due to ACL"},
+    "install": {"status": "skipped", "reason": "ACL blocked npm install"},
+    "staticAnalysis": {"tscNoEmit": "skipped", "eslint": "missing", "prettier": "missing"},
+    "flowMapping": {
+      "entry": "src/sections/Entry.tsx → /entry",
+      "form": "src/pages/EntryFormPage.tsx",
+      "submit": "POST /.netlify/functions/post-entry (Bearer local_session)",
+      "server": "netlify/functions/post-entry/index.js",
+      "success": "in-page success state"
+    },
+    "supabaseAuth": {
+      "sendOtp": "auth.signInWithOtp(shouldCreateUser by purpose)",
+      "verifyOtp": "auth.verifyOtp(type email|signup)",
+      "clientRedirect": "/dashboard after session saved",
+      "emailRedirectTo": "not used"
+    },
+    "netlifyRedirects": {"file": "netlify.toml", "rule": "/* -> /index.html 200"},
+    "envAudit": {
+      "hardcodedKeys": false,
+      "serverEnv": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
+      "risk": "SERVICE_ROLE acceptable on server only; ensure not exposed to client"
+    },
+    "simulation": {"status": "skipped", "reason": "ACL blocked execution"},
+    "dbCheck": {"tables": ["entries", "ledger_entries"], "rls": "not verifiable here"},
+    "securityScan": {"npmAudit": "skipped"},
+    "errorHandling": {"status": "reviewed", "notes": "Good messages and codes"},
+    "reactBestPractices": {"status": "reviewed", "notes": "No obvious issues in changed areas"},
+    "tests": {"netlifyVitest": "present", "status": "skipped"}
   },
-  "findings": [
-    {
-      "severity": "Critical",
-      "category": "Supabase Database",
-      "description": "The Supabase client initialization in `netlify/functions/utils/supabase.js` includes `process.env.SUPABASE_SERVICE_ROLE_KEY` as a fallback. If this key is present in the environment, all Row Level Security (RLS) policies will be bypassed by the Netlify functions.",
-      "recommendation": "Remove the `SUPABASE_SERVICE_ROLE_KEY` fallback from the Supabase client initialization. Ensure that functions interacting with user data use the `SUPABASE_ANON_KEY` to respect RLS policies."
-    },
-    {
-      "severity": "High",
-      "category": "Supabase Authentication",
-      "description": "The OTP/email verification flow is critically dependent on the 'Confirm signup' email template in the Supabase dashboard containing the `{{ .Token }}` variable. If this template is misconfigured, users will not receive their OTP, breaking the login and signup flows.",
-      "recommendation": "Verify the 'Confirm signup' email template in the Supabase dashboard to ensure it includes the `{{ .Token }}` variable."
-    },
-    {
-      "severity": "High",
-      "category": "Testing",
-      "description": "There are no unit, integration, or end-to-end (E2E) tests for the frontend React application. This is a significant gap, leaving the UI and critical user flows without automated verification.",
-      "recommendation": "Implement E2E tests using a framework like Playwright or Cypress to cover critical user journeys such as signup, login, and form submission."
-    },
-    {
-      "severity": "Medium",
-      "category": "Security Scans",
-      "description": "`npm audit` found 2 moderate severity vulnerabilities in `esbuild`, where the development server could be accessed by any website.",
-      "recommendation": "Run `npm audit fix --force` to update the vulnerable dependencies. Note that this may involve breaking changes and should be tested carefully."
-    },
-    {
-      "severity": "Medium",
-      "category": "Performance & React Best Practices",
-      "description": "The `EntryFormPage.tsx` component is monolithic, containing all form fields, validation logic, and static data in a single file, which makes it difficult to maintain.",
-      "recommendation": "Refactor the `EntryFormPage.tsx` component by breaking it down into smaller, reusable components and moving static data to a separate constants file."
-    },
-    {
-      "severity": "Medium",
-      "category": "Error Handling and Logging",
-      "description": "Error handling and logging on the frontend are inconsistent. Error messages can be generic, and some error paths in the login flow do not log to the console, making debugging difficult.",
-      "recommendation": "Implement more specific error messages based on backend responses and ensure all error paths are logged consistently in the frontend components."
-    },
-    {
-      "severity": "Low",
-      "category": "Performance & React Best Practices",
-      "description": "The application uses `window.location.href` for redirection in `Login.tsx` instead of the `useNavigate` hook from `react-router-dom`.",
-      "recommendation": "Replace hardcoded redirects with the `useNavigate` hook for better consistency and user experience in a single-page application."
-    }
+  "severities": [
+    {"level": "Critical", "items": []},
+    {"level": "High", "items": []},
+    {"level": "Medium", "items": ["Entry form token mismatch corrected", "Linting/prettier missing"]},
+    {"level": "Low", "items": ["Add CI for audit/tests", "Optional success page route"]}
+  ],
+  "patches": [
+    "src/components/OnboardingModal.tsx",
+    "src/styles/global.css",
+    "src/pages/EntryFormPage.tsx"
+  ],
+  "logs": [
+    "logs/01_snapshot.txt",
+    "logs/08_simulation.txt",
+    "logs/11_audit.txt",
+    "logs/11_audit.json",
+    "logs/14_tests.txt",
+    "logs/patch.diff"
   ]
 }

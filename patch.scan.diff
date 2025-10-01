@@ -1,0 +1,143 @@
+diff --git a/src/components/OnboardingModal.tsx b/src/components/OnboardingModal.tsx
+index 1111111..2222222 100644
+--- a/src/components/OnboardingModal.tsx
++++ b/src/components/OnboardingModal.tsx
+@@
+-import { useState, useEffect } from 'react';
+-import Confetti from 'react-confetti';
++import { useState, useEffect } from 'react';
++import Confetti from 'react-confetti';
+@@
+-  return (
+-    <>
+-      {showConfetti && <Confetti style={{ zIndex: 900, pointerEvents: 'none' }} />}
++  return (
++    <>
++      {showConfetti && <Confetti className="confetti-layer" />}
+       <div className="modal-overlay" onClick={onClose}>
+         <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="onboard-heading" onClick={e => e.stopPropagation()}>
+           <p className="modal-title-label">Onboarding</p>
+           <h2 id="onboard-heading">Welcome to the BTS Giveaway!</h2>
+           <p className="subtle mt-10">
+             This giveaway celebrates BTS’s upcoming shows and tours, bringing ARMY closer to the action.
+           </p>
+           <p className="subtle mt-8">
+             Our system is securely configured and monitored to ensure a fair and transparent experience for everyone. Winners are selected randomly, and the process complies with all Korean giveaway and promotional laws.
+           </p>
+           <p className="subtle mt-8">
+             All entries are tracked and audited to protect every participant. This initiative was created to strengthen the bond between BTS and their fans worldwide.
+           </p>
+           <div className="button-row mt-14">
+             <button type="button" className="button-primary" onClick={onClose}>Continue</button>
+           </div>
+         </div>
+       </div>
+     </>
+   );
+ }
+
+diff --git a/src/styles/global.css b/src/styles/global.css
+index 3333333..4444444 100644
+--- a/src/styles/global.css
++++ b/src/styles/global.css
+@@
+ .modal-overlay {
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background: rgba(0, 0, 0, 0.7);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1000;
+   backdrop-filter: blur(4px);
+ }
++
++/* Confetti canvas above modal */
++.confetti-layer {
++  position: fixed !important;
++  inset: 0;
++  z-index: 1200;
++  pointer-events: none;
++}
+
+diff --git a/src/pages/EntryFormPage.tsx b/src/pages/EntryFormPage.tsx
+index 5555555..6666666 100644
+--- a/src/pages/EntryFormPage.tsx
++++ b/src/pages/EntryFormPage.tsx
+@@
+-import React, { useState } from 'react';
++import React, { useEffect, useState } from 'react';
+@@
+-import Footer from '../sections/Footer';
++import Footer from '../sections/Footer';
++import { getLocalSession } from '../utils/auth';
+@@
+-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError } = useForm({
++  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue } = useForm({
+     defaultValues: {
+       referralCode: '',
+       fullName: '',
+       email: '',
+       zangiId: '',
+       phone: '',
+       addressLine1: '',
+       addressLine2: '',
+       city: '',
+       state: '',
+       postalCode: '',
+       useAsMailingAddress: false,
+       country: '',
+       dob: '',
+       gender: '',
+       fanPreferenceBranch: '',
+       favoriteGroup: '',
+-      favoriteArtist: '',
++      favoriteArtist: '',
++      consentTerms: false,
++      consentPrivacy: false,
+     }
+   });
++
++  useEffect(() => {
++    const s = getLocalSession();
++    if (!s) { navigate('/login'); return; }
++    setValue('email', s.email);
++  }, [navigate, setValue]);
+@@
+-    const token = localStorage.getItem('supabase-token');
++    const token = localStorage.getItem('local_session') || '';
+@@
+-        body: JSON.stringify(data),
++        body: JSON.stringify({
++          email: data.email,
++          full_name: data.fullName,
++          phone: data.phone || null,
++          birthdate: data.dob || null,
++          country: data.country,
++          consent_terms: !!data.consentTerms,
++          consent_privacy: !!data.consentPrivacy,
++          favorite_artist: data.favoriteArtist || null,
++          referral_code: data.referralCode || null,
++        }),
+       });
+@@
+-                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register("email", { required: "Email is required.", pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address." } })} />
++                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register("email", { required: "Email is required.", pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address." } })} readOnly />
+@@
++            {/* Consents */}
++            <div className="col-12 mb-4">
++              <fieldset className="border p-3">
++                <legend className="w-auto h5">Consents</legend>
++                <div className="form-check mb-2">
++                  <input type="checkbox" id="consent-terms" className="form-check-input" {...register('consentTerms', { required: 'You must accept the Terms and Conditions.' })} />
++                  <label htmlFor="consent-terms" className="form-check-label">I agree to the Terms and Conditions</label>
++                </div>
++                <div className="form-check">
++                  <input type="checkbox" id="consent-privacy" className="form-check-input" {...register('consentPrivacy', { required: 'You must accept the Privacy Policy.' })} />
++                  <label htmlFor="consent-privacy" className="form-check-label">I agree to the Privacy Policy</label>
++                </div>
++              </fieldset>
++            </div>
