@@ -13,6 +13,7 @@ import Dashboard from './sections/Dashboard';
 import PageTransition from './components/PageTransition';
 import OnboardingModal from './components/OnboardingModal';
 import EntryFormPage from './pages/EntryFormPage';
+import RouteLoader from './components/RouteLoader';
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
