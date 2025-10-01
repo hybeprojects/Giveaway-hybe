@@ -24,33 +24,51 @@ export default function RouteLoader() {
 
     const startedAt = Date.now();
     let settled = false;
+    let inFlight = false;
+
+    const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T | null> => {
+      return new Promise((resolve) => {
+        let done = false;
+        const t = window.setTimeout(() => { if (!done) resolve(null); }, ms);
+        p.then((v) => { done = true; window.clearTimeout(t); resolve(v); })
+         .catch(() => { done = true; window.clearTimeout(t); resolve(null as any); });
+      });
+    };
+
+    const tryPing = async (): Promise<boolean> => {
+      const ts = Date.now();
+      const cacheBuster = `cb=${ts}`;
+      const candidates = [
+        `/.netlify/functions/get-events?${cacheBuster}`,
+        `/manifest.webmanifest?${cacheBuster}`,
+        `/hybe-logo.svg?${cacheBuster}`,
+      ];
+
+      for (let i = 0; i < candidates.length; i++) {
+        const url = candidates[i];
+        const isFunction = url.includes('/.netlify/functions/');
+        const opts: RequestInit = isFunction
+          ? { method: 'GET', cache: 'no-store', headers: { accept: 'application/json' } }
+          : { method: 'HEAD', cache: 'no-cache' };
+
+        const res = await withTimeout(fetch(url, opts), 2000);
+        if (res && (res as Response).ok) return true;
+      }
+      return false;
+    };
 
     // Ping backend repeatedly until healthy (or a reasonable max time)
     const ping = async () => {
-      // Short-circuit if already settled
-      if (settled) return;
-      const ctrl = new AbortController();
-      const timeout = window.setTimeout(() => ctrl.abort(), 2500);
-      try {
-        const res = await fetch('/.netlify/functions/get-events', {
-          method: 'GET',
-          cache: 'no-store',
-          headers: { 'accept': 'application/json' },
-          signal: ctrl.signal,
-        });
-        if (res.ok) {
-          settled = true;
-          // Small delay to allow redirect animation feel, then hide
-          hideTimer.current = window.setTimeout(() => setVisible(false), 300);
-          if (pollTimer.current) window.clearInterval(pollTimer.current);
-        }
-      } catch (_) {
-        // ignore; keep polling
-      } finally {
-        window.clearTimeout(timeout);
+      if (settled || inFlight) return;
+      inFlight = true;
+      const ok = await tryPing();
+      inFlight = false;
+      if (ok) {
+        settled = true;
+        hideTimer.current = window.setTimeout(() => setVisible(false), 300);
+        if (pollTimer.current) window.clearInterval(pollTimer.current);
+        return;
       }
-
-      // Safety: if polling takes too long, stop waiting and hide anyway
       if (!settled && Date.now() - startedAt > 5000) {
         settled = true;
         hideTimer.current = window.setTimeout(() => setVisible(false), 300);
