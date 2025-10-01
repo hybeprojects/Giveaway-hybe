@@ -406,6 +406,14 @@ img, video {
   backdrop-filter: blur(4px);
 }
 
+/* Confetti canvas above modal */
+.confetti-layer {
+  position: fixed !important;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+}
+
 /* Route loading overlay */
 .route-loading-overlay {
   position: fixed;
