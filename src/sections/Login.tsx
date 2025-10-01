@@ -73,7 +73,7 @@ export default function Login() {
               <div className="auth-tagline">Official Giveaway Portal</div>
             </div>
 
-            <h2 className="section-title" style={{ marginTop: '1rem' }}>Sign in to your Giveaway</h2>
+            <h2 className="section-title mt-10">Sign in to your Giveaway</h2>
             <div className="card card-pad auth-card mt-12" role="region" aria-live="polite">
               <div className="auth-toggle mb-10">
                 <button className={`button-secondary${usePassword ? ' active' : ''}`} onClick={() => setUsePassword(true)} type="button">Use password</button>
