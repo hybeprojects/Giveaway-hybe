@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function VIPExperience() {
   return (
     <section id="vip" className="section vip-section" aria-label="VIP Experience">
@@ -12,7 +14,7 @@ export default function VIPExperience() {
               <li>Exclusive fine-dining experiences with world-renowned chefs.</li>
               <li>Unprecedented backstage access and exclusive merchandise at a HYBE event.</li>
             </ul>
-            <a href="/entry" className="button-primary">Enter Now for a Chance to Win</a>
+            <Link to="/entry" className="button-primary">Enter Now for a Chance to Win</Link>
           </div>
         </div>
       </div>
