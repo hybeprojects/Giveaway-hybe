@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
@@ -48,15 +49,14 @@ const fallbackCountries: { code: string; name: string }[] = [
 ];
 
 const EntryFormPage: React.FC = () => {
+  const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string>('');
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
-  // OTP inline flow state
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  // OTP modal flow state
+  const [otpOpen, setOtpOpen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -174,7 +174,7 @@ const EntryFormPage: React.FC = () => {
         return;
       }
 
-      setSubmissionSuccess(true);
+      navigate('/entry/success');
     } catch (err) {
       console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
@@ -200,11 +200,11 @@ const EntryFormPage: React.FC = () => {
     if (!token) {
       try {
         await requestOtp(data.email, 'login');
-        setOtpStep(true);
-        setOtpSent(true);
         setPendingPayload(payload);
         setPendingEmail(data.email);
-        setSubmissionError(null);
+        setOtpError(null);
+        setOtpCode('');
+        setOtpOpen(true);
       } catch (e: any) {
         setSubmissionError(e?.message || 'Failed to send code');
       }
@@ -214,8 +214,16 @@ const EntryFormPage: React.FC = () => {
     await submitEntryWithToken(token, payload);
   };
 
+  useEffect(() => {
+    const code = otpCode.trim();
+    if (!otpOpen) return;
+    if (code.length === 6 && /^\d{6}$/.test(code) && !isVerifying) {
+      verifyAndSubmit();
+    }
+  }, [otpCode, otpOpen]);
+
   const verifyAndSubmit = async () => {
-    if (!pendingEmail || !pendingPayload) return;
+    if (!pendingEmail || !pendingPayload || isVerifying) return;
     setIsVerifying(true);
     setOtpError(null);
     try {
@@ -223,6 +231,7 @@ const EntryFormPage: React.FC = () => {
       saveLocalSession(token);
       setSessionEmail(pendingEmail);
       await submitEntryWithToken(token, pendingPayload);
+      setOtpOpen(false);
     } catch (e: any) {
       setOtpError(e?.message || 'Verification failed');
     } finally {
@@ -240,30 +249,12 @@ const EntryFormPage: React.FC = () => {
     }
   };
 
-  const cancelOtp = () => {
-    setOtpStep(false);
-    setOtpSent(false);
+  const closeOtp = () => {
+    if (isVerifying) return;
+    setOtpOpen(false);
     setOtpCode('');
     setOtpError(null);
-    setPendingPayload(null);
   };
-
-  if (submissionSuccess) {
-    return (
-      <>
-        <Navbar />
-        <div className="entry-form-page container mt-5 text-center">
-          <div className="alert alert-success" role="alert">
-            <h4 className="alert-heading">Thank You!</h4>
-            <p>Your entry has been successfully submitted.</p>
-            <hr />
-            <p className="mb-0">You can now return to the <a href="/" className="alert-link">homepage</a>.</p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
@@ -458,57 +449,52 @@ const EntryFormPage: React.FC = () => {
           {/* Submission Area */}
           <div className="text-center">
             {submissionError && <div className="alert alert-danger" role="alert">{submissionError}</div>}
-
-            {!otpStep && (
-              <>
-                <div className="mb-3">
-                  <h3 className="h5">About the HYBE Mega Giveaway</h3>
-                  <p className="text-muted">
-                    This official HYBE initiative celebrates our artists and engages with our global fan community. The selection process is random and monitored for fairness.
-                  </p>
-                </div>
-                <button type="submit" className="button-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Submitting...' : 'Submit Entry'}
-                </button>
-              </>
-            )}
-
-            {otpStep && (
-              <>
-                <div className="alert alert-info" role="status">
-                  {otpSent ? (
-                    <span>We sent a 6‑digit code to <strong>{pendingEmail}</strong>. Enter it below to verify and submit your entry.</span>
-                  ) : (
-                    <span>Enter the 6‑digit code sent to your email.</span>
-                  )}
-                </div>
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="otp-code">Enter 6‑digit code</label>
-                  <input
-                    id="otp-code"
-                    className={`form-control ${otpError ? 'is-invalid' : ''}`}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    inputMode="numeric"
-                    pattern="\\d*"
-                    maxLength={6}
-                    aria-invalid={!!otpError}
-                    aria-describedby={otpError ? 'otp-code-error' : undefined}
-                  />
-                  {otpError && <div id="otp-code-error" className="invalid-feedback d-block" role="alert">{otpError}</div>}
-                </div>
-                <div className="button-row mt-14">
-                  <button type="button" className="button-primary" onClick={verifyAndSubmit} disabled={isVerifying || otpCode.trim().length < 6}>
-                    {isVerifying ? 'Verifying…' : 'Verify & Submit'}
-                  </button>
-                  <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying}>Resend code</button>
-                  <button type="button" className="button-secondary" onClick={cancelOtp} disabled={isVerifying}>Cancel</button>
-                </div>
-              </>
-            )}
+            <div className="mb-3">
+              <h3 className="h5">About the HYBE Mega Giveaway</h3>
+              <p className="text-muted">
+                This official HYBE initiative celebrates our artists and engages with our global fan community. The selection process is random and monitored for fairness.
+              </p>
+            </div>
+            <button type="submit" className="button-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+            </button>
           </div>
         </form>
       </div>
+
+      {/* OTP Modal */}
+      {otpOpen && (
+        <div className="modal-overlay" onClick={closeOtp}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="otp-heading" onClick={e => e.stopPropagation()}>
+            <p className="modal-title-label">Email verification</p>
+            <h2 id="otp-heading">Confirm your email</h2>
+            <p>We sent a 6‑digit code to <strong>{pendingEmail}</strong>. Enter it below to verify and submit your entry.</p>
+            <div className="otp-input-row">
+              <input
+                id="otp-code"
+                className={`form-control ${otpError ? 'is-invalid' : ''}`}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                inputMode="numeric"
+                pattern="\\d*"
+                maxLength={6}
+                aria-invalid={!!otpError}
+                aria-describedby={otpError ? 'otp-code-error' : undefined}
+                autoFocus
+              />
+              {isVerifying && (
+                <div className="otp-trailing" aria-hidden="true"><div className="loading-spinner" /></div>
+              )}
+            </div>
+            {otpError && <div id="otp-code-error" className="invalid-feedback d-block">{otpError}</div>}
+            <div className="button-row mt-14">
+              <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying}>Resend code</button>
+              <button type="button" className="button-secondary" onClick={closeOtp} disabled={isVerifying}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

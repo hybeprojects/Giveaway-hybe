@@ -16,6 +16,7 @@ const Footer = lazy(() => import('./sections/Footer'));
 const Login = lazy(() => import('./sections/Login'));
 const Dashboard = lazy(() => import('./sections/Dashboard'));
 const EntryFormPage = lazy(() => import('./pages/EntryFormPage'));
+const EntrySuccessPage = lazy(() => import('./pages/EntrySuccessPage'));
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="/login" element={<PageTransition><Suspense fallback={null}><Login /></Suspense></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
         <Route path="/entry" element={<PageTransition><Suspense fallback={null}><EntryFormPage /></Suspense></PageTransition>} />
+        <Route path="/entry/success" element={<PageTransition><Suspense fallback={null}><EntrySuccessPage /></Suspense></PageTransition>} />
         <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
       </Routes>
     </>
