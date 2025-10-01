@@ -1,15 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import Countdown from '../components/Countdown';
+import { useEffect, useState } from 'react';
 import { tryFetch } from '../utils/auth';
+import { useLiveEntriesCount } from '../utils/liveMetrics';
 
-function useAnimatedCount(start: number) {
-  const [n, setN] = useState(start);
-  useEffect(() => {
-    const id = setInterval(() => setN(v => v + Math.floor(Math.random() * 7)), 1200);
-    return () => clearInterval(id);
-  }, []);
-  return n;
-}
 
 function timeAgo(date: string | Date) {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -21,8 +13,7 @@ function timeAgo(date: string | Date) {
 }
 
 export default function LiveUpdates() {
-  const entries = useAnimatedCount(120_000);
-  const winnersAt = useMemo(() => { const d = new Date(); d.setDate(d.getDate() + 10); return d; }, []);
+  const entries = useLiveEntriesCount();
   const [feed, setFeed] = useState<{ text: string; created_at: string }[] | null>(null);
 
   useEffect(() => {
