@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
@@ -8,17 +8,7 @@ import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
 import { getLocalSession } from '../utils/auth';
 
-// Data arrays for form fields
-const countries = [
-  { value: 'USA', label: 'United States' },
-  { value: 'GBR', label: 'United Kingdom' },
-  { value: 'KOR', label: 'South Korea' },
-  { value: 'JPN', label: 'Japan' },
-  { value: 'CAN', label: 'Canada' },
-  { value: 'DEU', label: 'Germany' },
-  { value: 'AUS', label: 'Australia' },
-];
-
+// Data arrays for form fields (non-country)
 const hybeBranches = [
   { value: 'BIGHIT', label: 'BIGHIT MUSIC' },
   { value: 'PLEDIS', label: 'PLEDIS Entertainment' },
@@ -47,13 +37,26 @@ const favoriteArtists = [
   { value: 'Jungkook', label: 'Jungkook' },
 ];
 
+// Minimal fallback list used only if the countries API is unavailable
+const fallbackCountries: { code: string; name: string }[] = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+];
+
 const EntryFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string>('');
+  const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue, watch } = useForm({
     defaultValues: {
       referralCode: '',
       fullName: '',
@@ -77,6 +80,9 @@ const EntryFormPage: React.FC = () => {
     }
   });
 
+  const watchedCountry = watch('country');
+
+  // Load session and pre-fill email
   useEffect(() => {
     const s = getLocalSession();
     if (!s) {
@@ -86,6 +92,53 @@ const EntryFormPage: React.FC = () => {
     setSessionEmail(s.email);
     setValue('email', s.email);
   }, [navigate, setValue]);
+
+  // Fetch global country list from REST Countries API for robust worldwide support
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://restcountries.com/v3.1/all?fields=cca2,name');
+        if (!res.ok) throw new Error('Failed to load countries');
+        const data: { cca2: string; name: { common: string } }[] = await res.json();
+        const opts = data
+          .map(d => ({ code: d.cca2.toUpperCase(), name: d.name.common }))
+          .filter(d => d.code.length === 2 && d.name)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        if (!cancelled) setCountryOptions(opts);
+      } catch {
+        if (!cancelled) setCountryOptions(fallbackCountries);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detect user country by IP and preselect for both phone formatting and address country
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('Failed to geo-detect');
+        const info: any = await res.json();
+        const code: string | undefined = (info && (info.country_code || info.country)) ? String(info.country_code || info.country).toUpperCase() : undefined;
+        if (!cancelled && code && /^[A-Z]{2}$/.test(code)) {
+          setSelectedCountry(code);
+          setValue('country', code, { shouldValidate: true, shouldDirty: true });
+        }
+      } catch {
+        // Silent fallback: keep defaults
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setValue]);
+
+  // Keep phone input formatting in sync with the selected address country
+  useEffect(() => {
+    if (watchedCountry && watchedCountry !== selectedCountry) {
+      setSelectedCountry(watchedCountry);
+    }
+  }, [watchedCountry, selectedCountry]);
 
   const onSubmit = async (data: any) => {
     setSubmissionError(null);
@@ -127,7 +180,7 @@ const EntryFormPage: React.FC = () => {
 
       setSubmissionSuccess(true);
     } catch (err) {
-      console.error("Submission Error:", err);
+      console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
     }
   };
@@ -149,6 +202,13 @@ const EntryFormPage: React.FC = () => {
     );
   }
 
+  const countrySelectOptions = useMemo(() => (
+    [<option key="_placeholder" value="" disabled>Select Country</option>,
+     ...countryOptions.map(c => (
+       <option key={c.code} value={c.code}>{c.name}</option>
+     ))]
+  ), [countryOptions]);
+
   return (
     <>
       <Navbar />
@@ -163,22 +223,22 @@ const EntryFormPage: React.FC = () => {
                 <legend className="w-auto h5">Personal Information</legend>
                 <div className="mb-3">
                   <label htmlFor="referral-code" className="form-label">Referral Code</label>
-                  <input type="text" id="referral-code" className={`form-control ${errors.referralCode ? 'is-invalid' : ''}`} {...register("referralCode")} placeholder="(Optional)" />
+                  <input type="text" id="referral-code" className={`form-control ${errors.referralCode ? 'is-invalid' : ''}`} {...register('referralCode')} placeholder="(Optional)" />
                   {errors.referralCode && <div className="invalid-feedback">{errors.referralCode.message}</div>}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="full-name" className="form-label">Full Name <span className="text-danger">*</span></label>
-                  <input type="text" id="full-name" className={`form-control ${errors.fullName ? 'is-invalid' : ''}`} {...register("fullName", { required: "Full name is required." })} />
+                  <input type="text" id="full-name" className={`form-control ${errors.fullName ? 'is-invalid' : ''}`} {...register('fullName', { required: 'Full name is required.' })} />
                   {errors.fullName && <div className="invalid-feedback">{errors.fullName.message}</div>}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="dob" className="form-label">Date of Birth <span className="text-danger">*</span></label>
-                  <input type="date" id="dob" className={`form-control ${errors.dob ? 'is-invalid' : ''}`} {...register("dob", { required: "Date of birth is required." })} min="1900-01-01" max="2012-06-21" />
+                  <input type="date" id="dob" className={`form-control ${errors.dob ? 'is-invalid' : ''}`} {...register('dob', { required: 'Date of birth is required.' })} min="1900-01-01" max="2012-06-21" />
                   {errors.dob && <div className="invalid-feedback">{errors.dob.message}</div>}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="gender" className="form-label">Gender <span className="text-danger">*</span></label>
-                  <select id="gender" className={`form-select ${errors.gender ? 'is-invalid' : ''}`} {...register("gender", { required: "Gender is required." })}>
+                  <select id="gender" className={`form-select ${errors.gender ? 'is-invalid' : ''}`} {...register('gender', { required: 'Gender is required.' })}>
                     <option value="" disabled>Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -196,17 +256,36 @@ const EntryFormPage: React.FC = () => {
                 <legend className="w-auto h5">Contact Information</legend>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">Email <span className="text-danger">*</span></label>
-                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register("email", { required: "Email is required.", pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address." } })} value={sessionEmail} readOnly />
+                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register('email', { required: 'Email is required.', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' } })} value={sessionEmail} readOnly />
                   {errors.email && <div className="invalid-feedback">{errors.email.message}</div>}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="phone" className="form-label">Phone Number <span className="text-danger">*</span></label>
-                  <Controller name="phone" control={control} rules={{ required: "Phone number is required.", validate: value => isValidPhoneNumber(value || '') || "Invalid phone number." }} render={({ field }) => <PhoneInput {...field} id="phone" className={errors.phone ? 'is-invalid' : ''} international withCountryCallingCode />} />
+                  <Controller
+                    name="phone"
+                    control={control}
+                    rules={{
+                      required: 'Phone number is required.',
+                      validate: (value) => isValidPhoneNumber(value || '') || 'Invalid phone number.'
+                    }}
+                    render={({ field }) => (
+                      <PhoneInput
+                        {...field}
+                        id="phone"
+                        className={errors.phone ? 'is-invalid' : ''}
+                        international
+                        withCountryCallingCode
+                        limitMaxLength
+                        country={selectedCountry as any}
+                        defaultCountry={selectedCountry as any}
+                      />
+                    )}
+                  />
                   {errors.phone && <div className="invalid-feedback d-block">{errors.phone.message}</div>}
                 </div>
                 <div className="mb-3">
                   <label htmlFor="zangi-id" className="form-label">Zangi ID</label>
-                  <input type="text" id="zangi-id" className="form-control" {...register("zangiId")} placeholder="(Optional)" />
+                  <input type="text" id="zangi-id" className="form-control" {...register('zangiId')} placeholder="(Optional)" />
                 </div>
               </fieldset>
             </div>
@@ -218,38 +297,41 @@ const EntryFormPage: React.FC = () => {
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <label htmlFor="address-line1" className="form-label">Address Line 1 <span className="text-danger">*</span></label>
-                    <input type="text" id="address-line1" className={`form-control ${errors.addressLine1 ? 'is-invalid' : ''}`} {...register("addressLine1", { required: "Address line 1 is required." })} />
+                    <input type="text" id="address-line1" className={`form-control ${errors.addressLine1 ? 'is-invalid' : ''}`} {...register('addressLine1', { required: 'Address line 1 is required.' })} />
                     {errors.addressLine1 && <div className="invalid-feedback">{errors.addressLine1.message}</div>}
                   </div>
                   <div className="col-md-6 mb-3">
                     <label htmlFor="address-line2" className="form-label">Address Line 2</label>
-                    <input type="text" id="address-line2" className="form-control" {...register("addressLine2")} />
+                    <input type="text" id="address-line2" className="form-control" {...register('addressLine2')} />
                   </div>
                   <div className="col-md-4 mb-3">
                     <label htmlFor="city" className="form-label">City <span className="text-danger">*</span></label>
-                    <input type="text" id="city" className={`form-control ${errors.city ? 'is-invalid' : ''}`} {...register("city", { required: "City is required." })} />
+                    <input type="text" id="city" className={`form-control ${errors.city ? 'is-invalid' : ''}`} {...register('city', { required: 'City is required.' })} />
                     {errors.city && <div className="invalid-feedback">{errors.city.message}</div>}
                   </div>
                   <div className="col-md-4 mb-3">
-                    <label htmlFor="state" className="form-label">State/Province</label>
-                    <input type="text" id="state" className="form-control" {...register("state")} />
+                    <label htmlFor="state" className="form-label">State / Province / Region</label>
+                    <input type="text" id="state" className="form-control" {...register('state')} />
                   </div>
                   <div className="col-md-4 mb-3">
-                    <label htmlFor="postal-code" className="form-label">Postal Code <span className="text-danger">*</span></label>
-                    <input type="text" id="postal-code" className={`form-control ${errors.postalCode ? 'is-invalid' : ''}`} {...register("postalCode", { required: "Postal code is required." })} />
+                    <label htmlFor="postal-code" className="form-label">ZIP / Postal Code <span className="text-danger">*</span></label>
+                    <input type="text" id="postal-code" className={`form-control ${errors.postalCode ? 'is-invalid' : ''}`} {...register('postalCode', { required: 'Postal code is required.' })} />
                     {errors.postalCode && <div className="invalid-feedback">{errors.postalCode.message}</div>}
                   </div>
                   <div className="col-md-6 mb-3">
                     <label htmlFor="country-select" className="form-label">Country <span className="text-danger">*</span></label>
-                    <select id="country-select" className={`form-select ${errors.country ? 'is-invalid' : ''}`} {...register("country", { required: "Country is required." })}>
-                      <option value="" disabled>Select Country</option>
-                      {countries.map(country => <option key={country.value} value={country.value}>{country.label}</option>)}
+                    <select
+                      id="country-select"
+                      className={`form-select ${errors.country ? 'is-invalid' : ''}`}
+                      {...register('country', { required: 'Country is required.' })}
+                    >
+                      {countrySelectOptions}
                     </select>
                     {errors.country && <div className="invalid-feedback">{errors.country.message}</div>}
                   </div>
                   <div className="col-12">
                     <div className="form-check">
-                      <input type="checkbox" id="use-as-mailing-address" className="form-check-input" {...register("useAsMailingAddress")} />
+                      <input type="checkbox" id="use-as-mailing-address" className="form-check-input" {...register('useAsMailingAddress')} />
                       <label htmlFor="use-as-mailing-address" className="form-check-label">Use this address for mailing/delivery</label>
                     </div>
                   </div>
@@ -264,7 +346,7 @@ const EntryFormPage: React.FC = () => {
                 <div className="row">
                   <div className="col-md-4 mb-3">
                     <label htmlFor="branch" className="form-label">Favorite HYBE Branch <span className="text-danger">*</span></label>
-                    <select id="branch" className={`form-select ${errors.fanPreferenceBranch ? 'is-invalid' : ''}`} {...register("fanPreferenceBranch", { required: "This field is required." })}>
+                    <select id="branch" className={`form-select ${errors.fanPreferenceBranch ? 'is-invalid' : ''}`} {...register('fanPreferenceBranch', { required: 'This field is required.' })}>
                       <option value="" disabled>Select a Branch</option>
                       {hybeBranches.map(branch => <option key={branch.value} value={branch.value}>{branch.label}</option>)}
                     </select>
@@ -272,7 +354,7 @@ const EntryFormPage: React.FC = () => {
                   </div>
                   <div className="col-md-4 mb-3">
                     <label htmlFor="group" className="form-label">Favorite Group <span className="text-danger">*</span></label>
-                    <select id="group" className={`form-select ${errors.favoriteGroup ? 'is-invalid' : ''}`} {...register("favoriteGroup", { required: "This field is required." })}>
+                    <select id="group" className={`form-select ${errors.favoriteGroup ? 'is-invalid' : ''}`} {...register('favoriteGroup', { required: 'This field is required.' })}>
                       <option value="" disabled>Select a Group</option>
                       {favoriteGroups.map(group => <option key={group.value} value={group.value}>{group.label}</option>)}
                     </select>
@@ -280,7 +362,7 @@ const EntryFormPage: React.FC = () => {
                   </div>
                   <div className="col-md-4 mb-3">
                     <label htmlFor="artist" className="form-label">Favorite Artist <span className="text-danger">*</span></label>
-                    <select id="artist" className={`form-select ${errors.favoriteArtist ? 'is-invalid' : ''}`} {...register("favoriteArtist", { required: "This field is required." })}>
+                    <select id="artist" className={`form-select ${errors.favoriteArtist ? 'is-invalid' : ''}`} {...register('favoriteArtist', { required: 'This field is required.' })}>
                       <option value="" disabled>Select an Artist</option>
                       {favoriteArtists.map(artist => <option key={artist.value} value={artist.value}>{artist.label}</option>)}
                     </select>
