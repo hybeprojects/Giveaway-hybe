@@ -82,16 +82,14 @@ const EntryFormPage: React.FC = () => {
 
   const watchedCountry = watch('country');
 
-  // Load session and pre-fill email
+  // Load session and pre-fill email if available (do not require login)
   useEffect(() => {
     const s = getLocalSession();
-    if (!s) {
-      navigate('/login');
-      return;
+    if (s && s.email) {
+      setSessionEmail(s.email);
+      setValue('email', s.email, { shouldValidate: true });
     }
-    setSessionEmail(s.email);
-    setValue('email', s.email);
-  }, [navigate, setValue]);
+  }, [setValue]);
 
   // Fetch global country list from REST Countries API for robust worldwide support
   useEffect(() => {
@@ -256,7 +254,16 @@ const EntryFormPage: React.FC = () => {
                 <legend className="w-auto h5">Contact Information</legend>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">Email <span className="text-danger">*</span></label>
-                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register('email', { required: 'Email is required.', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' } })} value={sessionEmail} readOnly />
+                  <input
+                    type="email"
+                    id="email"
+                    className={`form-control ${errors.email ? 'is-invalid' : ''}`}
+                    {...register('email', {
+                      required: 'Email is required.',
+                      pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
+                    })}
+                    readOnly={!!sessionEmail}
+                  />
                   {errors.email && <div className="invalid-feedback">{errors.email.message}</div>}
                 </div>
                 <div className="mb-3">

@@ -111,13 +111,20 @@
 
 /* Smaller mobile phones */
 @media (max-width: 480px) {
-  .section-title {
-    font-size: 2rem;
-  }
+  .section-title { font-size: 2rem; }
+  .section { padding: 48px 0; }
+  .container { width: 92%; }
+  .hero-section { padding: 80px 0; }
 
   .button-primary,
   .button-secondary {
     width: 100%;
     padding: 1rem;
   }
+
+  /* Auth card tightening on very small screens */
+  .auth-card { padding: 1.25rem; }
+
+  /* Make toast and alerts comfortable on mobile */
+  .toast-stack { left: 8px; right: 8px; }
 }
