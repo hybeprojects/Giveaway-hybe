@@ -12,7 +12,7 @@ export default function VIPExperience() {
               <li>Exclusive fine-dining experiences with world-renowned chefs.</li>
               <li>Unprecedented backstage access and exclusive merchandise at a HYBE event.</li>
             </ul>
-            <a href="#enter" className="button-primary">Enter Now for a Chance to Win</a>
+            <a href="/entry" className="button-primary">Enter Now for a Chance to Win</a>
           </div>
         </div>
       </div>
