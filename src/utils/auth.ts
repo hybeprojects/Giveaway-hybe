@@ -74,13 +74,16 @@ export async function setPassword(password: string): Promise<void> {
   await parseJsonOrThrow(res as any, 'Failed to set password');
 }
 
-export async function loginWithPassword(email: string, password: string): Promise<string> {
+export async function loginWithPassword(email: string, password: string): Promise<void> {
   const endpoint = '/.netlify/functions/login';
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, password }) });
-  const data = await parseJsonOrThrow(res as any, 'Login failed');
-  const typed = data as VerifyOtpResponse;
-  if (!typed.ok) throw new Error(typed.error || 'Login failed');
-  return typed.session.access_token;
+  await parseJsonOrThrow(res as any, 'Login failed');
+}
+
+export async function sendMagicLink(email: string, redirectPath: string = '/signup'): Promise<void> {
+  const res = await tryFetch('/.netlify/functions/send-magic-link', { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, redirectPath }) });
+  const data = await parseJsonOrThrow(res as any, 'Failed to send magic link');
+  if (!(data && data.ok)) throw new Error(data?.error || 'Failed to send magic link');
 }
 
 export function saveLocalSession(session: string) {

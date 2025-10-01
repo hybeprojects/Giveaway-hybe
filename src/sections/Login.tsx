@@ -84,10 +84,12 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const token = await loginWithPassword(email, password);
-      saveLocalSession(token);
-      toast.success('Signed in');
-      navigate('/dashboard');
+      await loginWithPassword(email, password);
+      await requestOtp(email, 'login');
+      setUsePassword(true);
+      setSent(true);
+      setResendIn(60);
+      toast.info('Enter the 6‑digit code we emailed you');
     } catch (e: any) {
       const msg = e?.message || 'Login failed';
       setFormError(msg);
