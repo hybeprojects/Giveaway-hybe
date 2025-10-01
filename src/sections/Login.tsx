@@ -23,6 +23,12 @@ export default function Login() {
 
   useEffect(() => { const s = getLocalSession(); if (s) navigate('/dashboard'); }, [navigate]);
 
+  useEffect(() => {
+    if (!sent || resendIn <= 0) return;
+    const id = setInterval(() => setResendIn((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [sent, resendIn]);
+
   const send = async () => {
     if (!validateEmail(email)) { toast.error('Enter a valid email'); return; }
     setLoading(true);
