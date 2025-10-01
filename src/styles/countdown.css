@@ -21,10 +21,12 @@
 .countdown-value {
   font-size: 2rem;
   line-height: 1;
+  color: var(--hybe-black);
 }
 .countdown-label {
   font-size: 0.8rem;
   text-transform: uppercase;
+  color: var(--hybe-black);
 }
 .countdown-sep {
   font-weight: 700;
