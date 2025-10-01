@@ -13,6 +13,7 @@ import Dashboard from './sections/Dashboard';
 import PageTransition from './components/PageTransition';
 import OnboardingModal from './components/OnboardingModal';
 import EntryFormPage from './pages/EntryFormPage';
+import RouteLoader from './components/RouteLoader';
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
@@ -46,12 +47,15 @@ function Landing() {
 export default function App() {
   const location = useLocation();
   return (
-    <Routes location={location}>
-      <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
-      <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
-      <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-      <Route path="/entry" element={<PageTransition><EntryFormPage /></PageTransition>} />
-      <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
-    </Routes>
+    <>
+      <RouteLoader />
+      <Routes location={location}>
+        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+        <Route path="/entry" element={<PageTransition><EntryFormPage /></PageTransition>} />
+        <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
+      </Routes>
+    </>
   );
 }

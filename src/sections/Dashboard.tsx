@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMe, clearLocalSession, LedgerEntry, UserEntry } from '../utils/auth';
 import { useToast } from '../components/Toast';
 import WinnerWelcomeModal from '../components/WinnerWelcomeModal';
@@ -42,6 +43,7 @@ function calculateBalances(ledger: LedgerEntry[]) {
 // --- Main Dashboard Component ---
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entry, setEntry] = useState<UserEntry | null>(null);
@@ -61,7 +63,7 @@ export default function Dashboard() {
         return res.entry;
       } else {
         clearLocalSession();
-        window.location.href = '/login';
+        navigate('/login');
         setError(res.error);
         return null;
       }
@@ -135,7 +137,7 @@ export default function Dashboard() {
             </div>
             <button className="button-secondary" onClick={() => {
               clearLocalSession();
-              window.location.href = '/';
+              navigate('/');
             }}>
               Sign out
             </button>
