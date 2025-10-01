@@ -8,14 +8,14 @@ const supabaseUrl =
   '';
 
 const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   '';
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error(
-    'Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your environment.'
+    'Missing Supabase configuration. Please set SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY in your environment.'
   );
 }
 

@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './sections/Navbar';
 import Hero from './sections/Hero';
 import Prizes from './sections/Prizes';
