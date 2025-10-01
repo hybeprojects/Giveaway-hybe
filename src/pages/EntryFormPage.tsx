@@ -48,6 +48,8 @@ const fallbackCountries: { code: string; name: string }[] = [
   { code: 'KR', name: 'South Korea' },
 ];
 
+const RESEND_COOLDOWN_SECONDS = 30;
+
 const EntryFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ const EntryFormPage: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string>('');
+  const [resendIn, setResendIn] = useState(0);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue, watch } = useForm({
     defaultValues: {
@@ -145,6 +148,13 @@ const EntryFormPage: React.FC = () => {
     }
   }, [watchedCountry, selectedCountry]);
 
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (!otpOpen || resendIn <= 0) return;
+    const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [otpOpen, resendIn]);
+
   const countrySelectOptions = useMemo(() => (
     [<option key="_placeholder" value="" disabled>Select Country</option>,
      ...countryOptions.map(c => (
@@ -205,6 +215,7 @@ const EntryFormPage: React.FC = () => {
         setOtpError(null);
         setOtpCode('');
         setOtpOpen(true);
+        setResendIn(RESEND_COOLDOWN_SECONDS);
       } catch (e: any) {
         setSubmissionError(e?.message || 'Failed to send code');
       }
@@ -240,10 +251,11 @@ const EntryFormPage: React.FC = () => {
   };
 
   const resendCode = async () => {
-    if (!pendingEmail) return;
+    if (!pendingEmail || resendIn > 0) return;
     try {
       await requestOtp(pendingEmail, 'login');
       setOtpError(null);
+      setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (e: any) {
       setOtpError(e?.message || 'Failed to resend code');
     }
@@ -254,6 +266,7 @@ const EntryFormPage: React.FC = () => {
     setOtpOpen(false);
     setOtpCode('');
     setOtpError(null);
+    setResendIn(0);
   };
 
   return (
@@ -488,7 +501,7 @@ const EntryFormPage: React.FC = () => {
             </div>
             {otpError && <div id="otp-code-error" className="invalid-feedback d-block">{otpError}</div>}
             <div className="button-row mt-14">
-              <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying}>Resend code</button>
+              <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying || resendIn > 0}>{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
               <button type="button" className="button-secondary" onClick={closeOtp} disabled={isVerifying}>Cancel</button>
             </div>
           </div>
