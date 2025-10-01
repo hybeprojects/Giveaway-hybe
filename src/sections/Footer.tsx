@@ -11,9 +11,9 @@ export default function Footer() {
           </div>
           <div className="footer-links">
             <nav className="footer-nav">
-              <a className="footer-link" href="#">Terms of Service</a>
-              <a className="footer-link" href="#">Privacy Policy</a>
-              <a className="footer-link" href="#">Contact Us</a>
+              <a className="footer-link" href="https://www.hybecorp.com" target="_blank" rel="noopener noreferrer">HYBE Official</a>
+              <a className="footer-link" href="https://weverse.io/" target="_blank" rel="noopener noreferrer">Weverse</a>
+              <a className="footer-link" href="https://www.youtube.com/@HYBEOFFICIAL" target="_blank" rel="noopener noreferrer">YouTube</a>
             </nav>
             <div className="social-links">
               <a href="https://twitter.com/HYBEOFFICIALtwt" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="social-icon"><FaTwitter /></a>

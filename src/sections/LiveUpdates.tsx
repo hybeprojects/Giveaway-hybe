@@ -51,19 +51,6 @@ export default function LiveUpdates() {
           <h3>Live Entries Count</h3>
           <div className="h1 mt-6">{entries.toLocaleString()}</div>
         </div>
-        <div className="card card-pad">
-          <h3>Winners Announced Live on Stream</h3>
-          <Countdown target={winnersAt} />
-        </div>
-        <div className="card card-pad span-all">
-          <h3>Recent Activity</h3>
-          <ul>
-            {feed === null && Array.from({ length: 5 }).map((_, i) => (
-              <li key={i} className="subtle"><span className="skeleton skeleton-line" /></li>
-            ))}
-            {feed && feed.map((f, i) => <li key={i} className="subtle">{f.text} <span className="dim">· {timeAgo(f.created_at)}</span></li>)}
-          </ul>
-        </div>
       </div>
     </section>
   );
