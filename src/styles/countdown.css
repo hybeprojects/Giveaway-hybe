@@ -38,3 +38,19 @@
   .countdown-value { font-size: 1.6rem; }
   .countdown-unit { min-width: 64px; }
 }
+
+/* Mobile alignment enhancements */
+.countdown-timer { justify-content: center; flex-wrap: wrap; row-gap: 8px; column-gap: 10px; margin: 0 auto; }
+.countdown-timer .countdown-value { font-size: clamp(1.4rem, 6vw, 2rem); }
+.countdown-timer .countdown-label { font-size: 0.75rem; }
+
+@media (max-width: 600px) {
+  .countdown-timer { gap: 10px; }
+}
+@media (max-width: 480px) {
+  .countdown-sep { display: none; }
+  .countdown-unit { min-width: calc(50% - 10px); padding: 6px 8px; }
+}
+@media (max-width: 360px) {
+  .countdown-unit { min-width: 100%; }
+}

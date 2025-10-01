@@ -16,24 +16,27 @@ export default function LiveUpdates() {
   const entries = useLiveEntriesCount();
   const [feed, setFeed] = useState<{ text: string; created_at: string }[] | null>(null);
 
+  const ENABLE_EVENTS = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_ENABLE_EVENTS) === 'true';
+
   useEffect(() => {
+    if (!ENABLE_EVENTS) return;
     let active = true;
     const fetchEvents = async () => {
       const url = '/.netlify/functions/get-events';
       try {
         const res = await tryFetch(url, { method: 'GET' });
-        if (res && res.ok) {
-          const data = await res.json();
+        if (res && (res as any).ok) {
+          const data = await (res as any).json();
           if (active) setFeed(data);
         }
       } catch (e) {
-        console.warn('Failed to fetch events', e);
+        // Swallow network errors silently in non-Netlify environments
       }
     };
     fetchEvents();
     const id = setInterval(fetchEvents, 10000);
     return () => { active = false; clearInterval(id); };
-  }, []);
+  }, [ENABLE_EVENTS]);
 
   return (
     <section id="updates" className="section" aria-label="Live Updates">

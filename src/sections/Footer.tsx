@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="container">
         <div className="footer-content">
           <div className="footer-brand">
-            <img src="/hybe-logo.svg" width="100" alt="HYBE" loading="lazy" decoding="async" />
+            <img className="footer-logo" src="/hybe-logo.svg" width="100" alt="HYBE" loading="lazy" decoding="async" />
             <p className="copyright">© HYBE Corporation. All Rights Reserved.</p>
           </div>
           <div className="footer-links">
