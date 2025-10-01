@@ -6,7 +6,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
-import { getLocalSession } from '../utils/auth';
+import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession } from '../utils/auth';
 
 // Data arrays for form fields (non-country)
 const hybeBranches = [
@@ -48,13 +48,23 @@ const fallbackCountries: { code: string; name: string }[] = [
   { code: 'KR', name: 'South Korea' },
 ];
 
+const RESEND_COOLDOWN_SECONDS = 30;
+
 const EntryFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string>('');
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
+
+  // OTP modal flow state
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<any | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string>('');
+  const [resendIn, setResendIn] = useState(0);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue, watch } = useForm({
     defaultValues: {
@@ -138,23 +148,21 @@ const EntryFormPage: React.FC = () => {
     }
   }, [watchedCountry, selectedCountry]);
 
-  const onSubmit = async (data: any) => {
-    setSubmissionError(null);
-    const token = localStorage.getItem('local_session') || '';
-    if (!token) { navigate('/login'); return; }
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (!otpOpen || resendIn <= 0) return;
+    const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [otpOpen, resendIn]);
 
-    const payload = {
-      email: sessionEmail,
-      full_name: data.fullName,
-      phone: data.phone || null,
-      birthdate: data.dob || null,
-      country: data.country,
-      consent_terms: !!data.consentTerms,
-      consent_privacy: !!data.consentPrivacy,
-      favorite_artist: data.favoriteArtist || null,
-      referral_code: data.referralCode || null,
-    };
+  const countrySelectOptions = useMemo(() => (
+    [<option key="_placeholder" value="" disabled>Select Country</option>,
+     ...countryOptions.map(c => (
+       <option key={c.code} value={c.code}>{c.name}</option>
+     ))]
+  ), [countryOptions]);
 
+  async function submitEntryWithToken(token: string, payload: any) {
     try {
       const response = await fetch('/.netlify/functions/post-entry', {
         method: 'POST',
@@ -176,36 +184,90 @@ const EntryFormPage: React.FC = () => {
         return;
       }
 
-      setSubmissionSuccess(true);
+      navigate('/entry/success');
     } catch (err) {
       console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
     }
-  };
-
-  if (submissionSuccess) {
-    return (
-      <>
-        <Navbar />
-        <div className="entry-form-page container mt-5 text-center">
-          <div className="alert alert-success" role="alert">
-            <h4 className="alert-heading">Thank You!</h4>
-            <p>Your entry has been successfully submitted.</p>
-            <hr />
-            <p className="mb-0">You can now return to the <a href="/" className="alert-link">homepage</a>.</p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
   }
 
-  const countrySelectOptions = useMemo(() => (
-    [<option key="_placeholder" value="" disabled>Select Country</option>,
-     ...countryOptions.map(c => (
-       <option key={c.code} value={c.code}>{c.name}</option>
-     ))]
-  ), [countryOptions]);
+  const onSubmit = async (data: any) => {
+    setSubmissionError(null);
+
+    const payload = {
+      email: sessionEmail || data.email,
+      full_name: data.fullName,
+      phone: data.phone || null,
+      birthdate: data.dob || null,
+      country: data.country,
+      consent_terms: !!data.consentTerms,
+      consent_privacy: !!data.consentPrivacy,
+      favorite_artist: data.favoriteArtist || null,
+      referral_code: data.referralCode || null,
+    };
+
+    const token = localStorage.getItem('local_session') || '';
+    if (!token) {
+      try {
+        await requestOtp(data.email, 'login');
+        setPendingPayload(payload);
+        setPendingEmail(data.email);
+        setOtpError(null);
+        setOtpCode('');
+        setOtpOpen(true);
+        setResendIn(RESEND_COOLDOWN_SECONDS);
+      } catch (e: any) {
+        setSubmissionError(e?.message || 'Failed to send code');
+      }
+      return;
+    }
+
+    await submitEntryWithToken(token, payload);
+  };
+
+  useEffect(() => {
+    const code = otpCode.trim();
+    if (!otpOpen) return;
+    if (code.length === 6 && /^\d{6}$/.test(code) && !isVerifying) {
+      verifyAndSubmit();
+    }
+  }, [otpCode, otpOpen]);
+
+  const verifyAndSubmit = async () => {
+    if (!pendingEmail || !pendingPayload || isVerifying) return;
+    setIsVerifying(true);
+    setOtpError(null);
+    try {
+      const token = await verifyOtpFn(pendingEmail, otpCode.trim(), 'login');
+      saveLocalSession(token);
+      setSessionEmail(pendingEmail);
+      await submitEntryWithToken(token, pendingPayload);
+      setOtpOpen(false);
+    } catch (e: any) {
+      setOtpError(e?.message || 'Verification failed');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const resendCode = async () => {
+    if (!pendingEmail || resendIn > 0) return;
+    try {
+      await requestOtp(pendingEmail, 'login');
+      setOtpError(null);
+      setResendIn(RESEND_COOLDOWN_SECONDS);
+    } catch (e: any) {
+      setOtpError(e?.message || 'Failed to resend code');
+    }
+  };
+
+  const closeOtp = () => {
+    if (isVerifying) return;
+    setOtpOpen(false);
+    setOtpCode('');
+    setOtpError(null);
+    setResendIn(0);
+  };
 
   return (
     <>
@@ -412,6 +474,40 @@ const EntryFormPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* OTP Modal */}
+      {otpOpen && (
+        <div className="modal-overlay" onClick={closeOtp}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="otp-heading" onClick={e => e.stopPropagation()}>
+            <p className="modal-title-label">Email verification</p>
+            <h2 id="otp-heading">Confirm your email</h2>
+            <p>We sent a 6‑digit code to <strong>{pendingEmail}</strong>. Enter it below to verify and submit your entry.</p>
+            <div className="otp-input-row">
+              <input
+                id="otp-code"
+                className={`form-control ${otpError ? 'is-invalid' : ''}`}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                inputMode="numeric"
+                pattern="\\d*"
+                maxLength={6}
+                aria-invalid={!!otpError}
+                aria-describedby={otpError ? 'otp-code-error' : undefined}
+                autoFocus
+              />
+              {isVerifying && (
+                <div className="otp-trailing" aria-hidden="true"><div className="loading-spinner" /></div>
+              )}
+            </div>
+            {otpError && <div id="otp-code-error" className="invalid-feedback d-block">{otpError}</div>}
+            <div className="button-row mt-14">
+              <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying || resendIn > 0}>{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
+              <button type="button" className="button-secondary" onClick={closeOtp} disabled={isVerifying}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );
