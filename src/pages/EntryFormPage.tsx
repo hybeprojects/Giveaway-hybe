@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
@@ -6,6 +6,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
+import { getLocalSession } from '../utils/auth';
 
 // Data arrays for form fields
 const countries = [
@@ -50,8 +51,9 @@ const EntryFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string>('');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue } = useForm({
     defaultValues: {
       referralCode: '',
       fullName: '',
@@ -70,21 +72,46 @@ const EntryFormPage: React.FC = () => {
       fanPreferenceBranch: '',
       favoriteGroup: '',
       favoriteArtist: '',
+      consentTerms: false,
+      consentPrivacy: false,
     }
   });
 
+  useEffect(() => {
+    const s = getLocalSession();
+    if (!s) {
+      navigate('/login');
+      return;
+    }
+    setSessionEmail(s.email);
+    setValue('email', s.email);
+  }, [navigate, setValue]);
+
   const onSubmit = async (data: any) => {
     setSubmissionError(null);
-    const token = localStorage.getItem('supabase-token');
+    const token = localStorage.getItem('local_session') || '';
+    if (!token) { navigate('/login'); return; }
+
+    const payload = {
+      email: sessionEmail,
+      full_name: data.fullName,
+      phone: data.phone || null,
+      birthdate: data.dob || null,
+      country: data.country,
+      consent_terms: !!data.consentTerms,
+      consent_privacy: !!data.consentPrivacy,
+      favorite_artist: data.favoriteArtist || null,
+      referral_code: data.referralCode || null,
+    };
 
     try {
       const response = await fetch('/.netlify/functions/post-entry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -169,7 +196,7 @@ const EntryFormPage: React.FC = () => {
                 <legend className="w-auto h5">Contact Information</legend>
                 <div className="mb-3">
                   <label htmlFor="email" className="form-label">Email <span className="text-danger">*</span></label>
-                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register("email", { required: "Email is required.", pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address." } })} />
+                  <input type="email" id="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} {...register("email", { required: "Email is required.", pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address." } })} value={sessionEmail} readOnly />
                   {errors.email && <div className="invalid-feedback">{errors.email.message}</div>}
                 </div>
                 <div className="mb-3">
@@ -259,6 +286,23 @@ const EntryFormPage: React.FC = () => {
                     </select>
                     {errors.favoriteArtist && <div className="invalid-feedback">{errors.favoriteArtist.message}</div>}
                   </div>
+                </div>
+              </fieldset>
+            </div>
+
+            {/* Consents */}
+            <div className="col-12 mb-4">
+              <fieldset className="border p-3">
+                <legend className="w-auto h5">Consents</legend>
+                <div className="form-check mb-2">
+                  <input type="checkbox" id="consent-terms" className="form-check-input" {...register('consentTerms', { required: 'You must accept the Terms and Conditions.' })} />
+                  <label htmlFor="consent-terms" className="form-check-label">I agree to the Terms and Conditions</label>
+                  {errors.consentTerms && <div className="text-danger small mt-1">{String(errors.consentTerms.message)}</div>}
+                </div>
+                <div className="form-check">
+                  <input type="checkbox" id="consent-privacy" className="form-check-input" {...register('consentPrivacy', { required: 'You must accept the Privacy Policy.' })} />
+                  <label htmlFor="consent-privacy" className="form-check-label">I agree to the Privacy Policy</label>
+                  {errors.consentPrivacy && <div className="text-danger small mt-1">{String(errors.consentPrivacy.message)}</div>}
                 </div>
               </fieldset>
             </div>

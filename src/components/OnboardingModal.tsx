@@ -21,7 +21,7 @@ export default function OnboardingModal({ isOpen, onClose }: Props) {
 
   return (
     <>
-      {showConfetti && <Confetti style={{ zIndex: 900, pointerEvents: 'none' }} />}
+      {showConfetti && <Confetti className="confetti-layer" />}
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="onboard-heading" onClick={e => e.stopPropagation()}>
           <p className="modal-title-label">Onboarding</p>
