@@ -20,11 +20,26 @@ export default function Countdown({ target }: Props) {
     return () => clearInterval(id);
   }, [stamp]);
   return (
-    <div className="timer" aria-live="polite">
-      <div className="unit"><div className="h1">{parts.days}</div><div className="subtle">Days</div></div>
-      <div className="unit"><div className="h1">{parts.hours}</div><div className="subtle">Hours</div></div>
-      <div className="unit"><div className="h1">{parts.minutes}</div><div className="subtle">Minutes</div></div>
-      <div className="unit"><div className="h1">{parts.seconds}</div><div className="subtle">Seconds</div></div>
+    <div className="timer countdown-timer" aria-live="polite">
+      <div className="unit countdown-unit">
+        <div className="h1 countdown-value">{parts.days}</div>
+        <div className="subtle countdown-label">Days</div>
+      </div>
+      <div className="countdown-sep" aria-hidden>:</div>
+      <div className="unit countdown-unit">
+        <div className="h1 countdown-value">{parts.hours}</div>
+        <div className="subtle countdown-label">Hours</div>
+      </div>
+      <div className="countdown-sep" aria-hidden>:</div>
+      <div className="unit countdown-unit">
+        <div className="h1 countdown-value">{parts.minutes}</div>
+        <div className="subtle countdown-label">Minutes</div>
+      </div>
+      <div className="countdown-sep" aria-hidden>:</div>
+      <div className="unit countdown-unit">
+        <div className="h1 countdown-value">{parts.seconds}</div>
+        <div className="subtle countdown-label">Seconds</div>
+      </div>
     </div>
   );
 }

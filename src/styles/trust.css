@@ -1,0 +1,70 @@
+/* Trust & Transparency enhanced styles */
+
+.trust-section {
+  background-image: linear-gradient(180deg, rgba(245,255,0,0.05), rgba(0,0,0,0));
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.trust-card {
+  position: relative;
+  border-radius: 12px;
+  background: linear-gradient(var(--hybe-white), var(--hybe-white)) padding-box,
+              linear-gradient(135deg, var(--hybe-yellow), var(--accent-blue)) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.trust-verified {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--hybe-white);
+  border: 1px solid #eee;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* FAQ styling */
+.faq-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.faq-answer {
+  margin: 0;
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .trust-grid {
+    grid-template-columns: 1fr;
+  }
+}
