@@ -11,7 +11,7 @@ const handler = async (event) => {
     }
 
     const site = process.env.NETLIFY_SITE_URL || process.env.URL || '';
-    const redirectTo = `${site}${redirectPath || '/signup'}`;
+    const redirectTo = `${site}${redirectPath || '/MagicLinkSignupPage'}`;
 
     const { error } = await supabase.auth.signInWithOtp({
       email,

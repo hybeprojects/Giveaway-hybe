@@ -20,6 +20,7 @@ const EntryFormPage = lazy(() => import('./pages/EntryFormPage'));
 const EntrySuccessPage = lazy(() => import('./pages/EntrySuccessPage'));
 const OtpVerifyPage = lazy(() => import('./pages/OtpVerifyPage'));
 const MagicLinkSignupPage = lazy(() => import('./pages/MagicLinkSignupPage'));
+const VerifyPasswordOtpPage = lazy(() => import('./pages/VerifyPasswordOtpPage'));
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
@@ -85,9 +86,12 @@ export default function App() {
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Suspense fallback={null}><Login /></Suspense></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
+        <Route path="/dashboard/:userId" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
         <Route path="/entry" element={<PageTransition><Suspense fallback={null}><EntryFormPage /></Suspense></PageTransition>} />
         <Route path="/verify" element={<PageTransition><Suspense fallback={null}><OtpVerifyPage /></Suspense></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Suspense fallback={null}><MagicLinkSignupPage /></Suspense></PageTransition>} />
+        <Route path="/MagicLinkSignupPage" element={<PageTransition><Suspense fallback={null}><MagicLinkSignupPage /></Suspense></PageTransition>} />
+        <Route path="/verify-password" element={<PageTransition><Suspense fallback={null}><VerifyPasswordOtpPage /></Suspense></PageTransition>} />
         <Route path="/entry/success" element={<PageTransition><Suspense fallback={null}><EntrySuccessPage /></Suspense></PageTransition>} />
         <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
       </Routes>

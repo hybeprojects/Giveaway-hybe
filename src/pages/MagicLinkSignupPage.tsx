@@ -56,8 +56,12 @@ export default function MagicLinkSignupPage() {
       const res = await fetch('/.netlify/functions/set-password', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ password }) });
       const data = await res.json();
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Failed to set password');
-      setMessage('Password set. Redirecting…');
-      setTimeout(() => { window.location.assign('/dashboard'); }, 800);
+      setMessage('Password set. We sent a verification code to your email.');
+      const email = (await (await supabase.auth.getUser()).data.user)?.email || '';
+      if (email) {
+        await fetch('/.netlify/functions/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, purpose: 'login' }) });
+        window.location.assign(`/verify-password?email=${encodeURIComponent(email)}`);
+      }
     } catch (e: any) {
       setError(e?.message || 'Failed to set password');
     } finally { setLoading(false); }
