@@ -16,6 +16,9 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [usePassword, setUsePassword] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; code?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const toast = useToast();
 
   useEffect(() => { const s = getLocalSession(); if (s) navigate('/dashboard'); }, [navigate]);
