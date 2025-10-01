@@ -8,34 +8,64 @@ import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
 import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession } from '../utils/auth';
 
-// Data arrays for form fields (non-country)
-const hybeBranches = [
-  { value: 'BIGHIT', label: 'BIGHIT MUSIC' },
-  { value: 'PLEDIS', label: 'PLEDIS Entertainment' },
-  { value: 'SOURCEMUSIC', label: 'SOURCE MUSIC' },
-  { value: 'BELIFTLAB', label: 'BELIFT LAB' },
-  { value: 'ADOR', label: 'ADOR' },
-];
-
-const favoriteGroups = [
-  { value: 'BTS', label: 'BTS' },
-  { value: 'TXT', label: 'Tomorrow X Together' },
-  { value: 'ENHYPEN', label: 'ENHYPEN' },
-  { value: 'SEVENTEEN', label: 'SEVENTEEN' },
-  { value: 'fromis_9', label: 'fromis_9' },
-  { value: 'LE SSERAFIM', label: 'LE SSERAFIM' },
-  { value: 'NewJeans', label: 'NewJeans' },
-];
-
-const favoriteArtists = [
-  { value: 'RM', label: 'RM' },
-  { value: 'Jin', label: 'Jin' },
-  { value: 'Suga', label: 'Suga' },
-  { value: 'J-Hope', label: 'J-Hope' },
-  { value: 'Jimin', label: 'Jimin' },
-  { value: 'V', label: 'V' },
-  { value: 'Jungkook', label: 'Jungkook' },
-];
+// HYBE hierarchy: Branch -> Group -> Artists
+const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
+  BIGHIT: {
+    label: 'BIGHIT MUSIC',
+    groups: {
+      BTS: {
+        label: 'BTS',
+        artists: ['RM', 'Jin', 'Suga', 'J-Hope', 'Jimin', 'V', 'Jungkook'],
+      },
+      TXT: {
+        label: 'Tomorrow X Together',
+        artists: ['Yeonjun', 'Soobin', 'Beomgyu', 'Taehyun', 'Hueningkai'],
+      },
+    },
+  },
+  PLEDIS: {
+    label: 'PLEDIS Entertainment',
+    groups: {
+      SEVENTEEN: {
+        label: 'SEVENTEEN',
+        artists: [
+          'S.Coups', 'Jeonghan', 'Joshua', 'Jun', 'Hoshi', 'Wonwoo', 'Woozi', 'The8', 'Mingyu', 'DK', 'Seungkwan', 'Vernon', 'Dino',
+        ],
+      },
+      fromis_9: {
+        label: 'fromis_9',
+        artists: ['Saerom', 'Hayoung', 'Jiwon', 'Jisun', 'Seoyeon', 'Chaeyoung', 'Nagyung', 'Jiheon'],
+      },
+    },
+  },
+  SOURCEMUSIC: {
+    label: 'SOURCE MUSIC',
+    groups: {
+      'LE SSERAFIM': {
+        label: 'LE SSERAFIM',
+        artists: ['Sakura', 'Kim Chaewon', 'Huh Yunjin', 'Kazuha', 'Hong Eunchae'],
+      },
+    },
+  },
+  BELIFTLAB: {
+    label: 'BELIFT LAB',
+    groups: {
+      ENHYPEN: {
+        label: 'ENHYPEN',
+        artists: ['Heeseung', 'Jay', 'Jake', 'Sunghoon', 'Sunoo', 'Jungwon', 'Ni-ki'],
+      },
+    },
+  },
+  ADOR: {
+    label: 'ADOR',
+    groups: {
+      NewJeans: {
+        label: 'NewJeans',
+        artists: ['Minji', 'Hanni', 'Danielle', 'Haerin', 'Hyein'],
+      },
+    },
+  },
+};
 
 // Minimal fallback list used only if the countries API is unavailable
 const fallbackCountries: { code: string; name: string }[] = [
@@ -91,6 +121,8 @@ const EntryFormPage: React.FC = () => {
   });
 
   const watchedCountry = watch('country');
+  const selectedBranch = watch('fanPreferenceBranch');
+  const selectedGroup = watch('favoriteGroup');
 
   // Load session and pre-fill email if available (do not require login)
   useEffect(() => {
@@ -154,6 +186,33 @@ const EntryFormPage: React.FC = () => {
     const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [otpOpen, resendIn]);
+
+  // Derived options for cascading selects
+  const branchOptions = useMemo(() => (
+    Object.entries(HYBE_STRUCTURE).map(([value, meta]) => ({ value, label: meta.label }))
+  ), []);
+
+  const groupOptions = useMemo(() => {
+    if (!selectedBranch) return [] as { value: string; label: string }[];
+    const groups = HYBE_STRUCTURE[selectedBranch]?.groups || {};
+    return Object.entries(groups).map(([value, meta]) => ({ value, label: meta.label }));
+  }, [selectedBranch]);
+
+  const artistOptions = useMemo(() => {
+    if (!selectedBranch || !selectedGroup) return [] as { value: string; label: string }[];
+    const artists = HYBE_STRUCTURE[selectedBranch]?.groups?.[selectedGroup]?.artists || [];
+    return artists.map((a) => ({ value: a, label: a }));
+  }, [selectedBranch, selectedGroup]);
+
+  // Reset dependent fields when parents change
+  useEffect(() => {
+    setValue('favoriteGroup', '');
+    setValue('favoriteArtist', '');
+  }, [selectedBranch, setValue]);
+
+  useEffect(() => {
+    setValue('favoriteArtist', '');
+  }, [selectedGroup, setValue]);
 
   const countrySelectOptions = useMemo(() => (
     [<option key="_placeholder" value="" disabled>Select Country</option>,
@@ -415,27 +474,47 @@ const EntryFormPage: React.FC = () => {
                 <div className="row">
                   <div className="col-md-4 mb-3">
                     <label htmlFor="branch" className="form-label">Favorite HYBE Branch <span className="text-danger">*</span></label>
-                    <select id="branch" className={`form-select ${errors.fanPreferenceBranch ? 'is-invalid' : ''}`} {...register('fanPreferenceBranch', { required: 'This field is required.' })}>
+                    <select
+                      id="branch"
+                      className={`form-select ${errors.fanPreferenceBranch ? 'is-invalid' : ''}`}
+                      {...register('fanPreferenceBranch', { required: 'This field is required.' })}
+                    >
                       <option value="" disabled>Select a Branch</option>
-                      {hybeBranches.map(branch => <option key={branch.value} value={branch.value}>{branch.label}</option>)}
+                      {branchOptions.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                     </select>
                     {errors.fanPreferenceBranch && <div className="invalid-feedback">{errors.fanPreferenceBranch.message}</div>}
                   </div>
                   <div className="col-md-4 mb-3">
                     <label htmlFor="group" className="form-label">Favorite Group <span className="text-danger">*</span></label>
-                    <select id="group" className={`form-select ${errors.favoriteGroup ? 'is-invalid' : ''}`} {...register('favoriteGroup', { required: 'This field is required.' })}>
-                      <option value="" disabled>Select a Group</option>
-                      {favoriteGroups.map(group => <option key={group.value} value={group.value}>{group.label}</option>)}
+                    <select
+                      id="group"
+                      className={`form-select ${errors.favoriteGroup ? 'is-invalid' : ''}`}
+                      aria-disabled={!selectedBranch}
+                      disabled={!selectedBranch}
+                      {...register('favoriteGroup', {
+                        validate: (v) => !selectedBranch || v ? true : 'This field is required.'
+                      })}
+                    >
+                      <option value="" disabled>{selectedBranch ? 'Select a Group' : 'Select a Branch first'}</option>
+                      {groupOptions.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                     </select>
-                    {errors.favoriteGroup && <div className="invalid-feedback">{errors.favoriteGroup.message}</div>}
+                    {errors.favoriteGroup && <div className="invalid-feedback">{String(errors.favoriteGroup.message)}</div>}
                   </div>
                   <div className="col-md-4 mb-3">
                     <label htmlFor="artist" className="form-label">Favorite Artist <span className="text-danger">*</span></label>
-                    <select id="artist" className={`form-select ${errors.favoriteArtist ? 'is-invalid' : ''}`} {...register('favoriteArtist', { required: 'This field is required.' })}>
-                      <option value="" disabled>Select an Artist</option>
-                      {favoriteArtists.map(artist => <option key={artist.value} value={artist.value}>{artist.label}</option>)}
+                    <select
+                      id="artist"
+                      className={`form-select ${errors.favoriteArtist ? 'is-invalid' : ''}`}
+                      aria-disabled={!selectedGroup}
+                      disabled={!selectedBranch || !selectedGroup}
+                      {...register('favoriteArtist', {
+                        validate: (v) => !selectedGroup ? true : (v ? true : 'This field is required.')
+                      })}
+                    >
+                      <option value="" disabled>{selectedGroup ? 'Select an Artist' : 'Select a Group first'}</option>
+                      {artistOptions.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
                     </select>
-                    {errors.favoriteArtist && <div className="invalid-feedback">{errors.favoriteArtist.message}</div>}
+                    {errors.favoriteArtist && <div className="invalid-feedback">{String(errors.favoriteArtist.message)}</div>}
                   </div>
                 </div>
               </fieldset>

@@ -59,10 +59,12 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const session = await verifyOtpFn(email, code.trim());
-      saveLocalSession(session);
+      const token = await verifyOtpFn(email, code.trim());
+      saveLocalSession(token);
+      const payload = (() => { try { const p = token.split('.')[1]; return JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(p.length/4)*4,'='))); } catch { return null; } })();
+      const userId = payload?.sub || 'me';
       toast.success('Signed in');
-      navigate('/dashboard');
+      navigate(`/dashboard/${encodeURIComponent(userId)}`);
     } catch (e: any) {
       const msg = e?.message || 'Invalid or expired code';
       setFormError(msg);
@@ -84,10 +86,12 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const token = await loginWithPassword(email, password);
-      saveLocalSession(token);
-      toast.success('Signed in');
-      navigate('/dashboard');
+      await loginWithPassword(email, password);
+      await requestOtp(email, 'login');
+      setUsePassword(true);
+      setSent(true);
+      setResendIn(60);
+      toast.info('Enter the 6‑digit code we emailed you');
     } catch (e: any) {
       const msg = e?.message || 'Login failed';
       setFormError(msg);
