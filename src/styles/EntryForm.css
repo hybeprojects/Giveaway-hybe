@@ -86,6 +86,13 @@
   border: none;
 }
 
+/* Ensure the country flag icon is visible */
+.PhoneInputCountryIcon,
+.PhoneInputCountryIconImg {
+  display: inline-block;
+  visibility: visible;
+}
+
 /* Style for the phone input when it's invalid */
 .PhoneInput.is-invalid .PhoneInputInput,
 .PhoneInput.is-invalid .PhoneInputCountry {
