@@ -3,10 +3,11 @@ import { useToast } from './Toast';
 import { getMe } from '../utils/auth';
 
 interface ShippingFormProps {
-  onSuccess: () => void;
+  onSuccess: (address: string) => void;
+  demoMode?: boolean;
 }
 
-const ShippingForm: React.FC<ShippingFormProps> = ({ onSuccess }) => {
+const ShippingForm: React.FC<ShippingFormProps> = ({ onSuccess, demoMode = false }) => {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const toast = useToast();
@@ -19,6 +20,12 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onSuccess }) => {
     }
     setLoading(true);
     try {
+      if (demoMode) {
+        await new Promise(r => setTimeout(r, 400));
+        toast.success('Your shipping details have been saved!');
+        onSuccess(address);
+        return;
+      }
       const sessionToken = localStorage.getItem('local_session') || '';
       const res = await fetch(`/.netlify/functions/confirm-details`, {
         method: 'POST',
@@ -29,7 +36,7 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onSuccess }) => {
       if (!res.ok) throw new Error(data.error || 'Failed to save address.');
 
       toast.success('Your shipping details have been saved!');
-      onSuccess(); // Notify parent component to refresh data
+      onSuccess(address);
     } catch (err: any) {
       toast.error(err.message || 'An unexpected error occurred.');
     } finally {
