@@ -1,6 +1,5 @@
 import React from 'react';
 import AppLayout from '../components/AppLayout';
-import AppLayout from '../components/AppLayout';
 import BalanceCard from '../components/BalanceCard';
 import PrizeCarousel from '../components/PrizeCarousel';
 import TransactionList from '../components/TransactionList';
