@@ -15,19 +15,22 @@ const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid code' }) };
     }
 
-    // Supabase handles verification and rate limiting.
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: purpose === 'signup' ? 'signup' : 'email',
-    });
+    // Try verifying as a login email OTP first; if that fails, try signup OTP.
+    let first = await supabase.auth.verifyOtp({ email, token: code, type: purpose === 'signup' ? 'signup' : 'email' });
+    let { data, error } = first;
+
+    if (error) {
+      console.warn('Primary verify failed, trying alternate type for OTP:', error?.message);
+      const alternateType = (purpose === 'signup') ? 'email' : 'signup';
+      const second = await supabase.auth.verifyOtp({ email, token: code, type: alternateType });
+      data = second.data; error = second.error;
+    }
 
     if (error) {
       console.error('Supabase verify OTP error:', error);
       return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Incorrect or expired code.', detail: error.message }) };
     }
 
-    // On success, `data` contains the session object (access_token, refresh_token, user).
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
