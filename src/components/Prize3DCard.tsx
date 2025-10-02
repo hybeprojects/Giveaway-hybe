@@ -1,10 +1,8 @@
-import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 function TeslaModel3() {
-  // Placeholder 3D model: simple spinning box
+  // This component will only be rendered inside a client-side Canvas
   return (
     <mesh rotation={[0.4, 0.8, 0]}>
       <boxGeometry args={[2, 1, 4]} />
@@ -14,6 +12,32 @@ function TeslaModel3() {
 }
 
 export default function Prize3DCard() {
+  const [Three, setThree] = useState<{ Canvas?: any; OrbitControls?: any } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Dynamically import three/fiber and drei on the client only.
+    // If the import fails (version mismatch), we catch it and show a graceful fallback.
+    Promise.all([import('@react-three/fiber'), import('@react-three/drei')])
+      .then(([fiber, drei]) => {
+        if (!mounted) return;
+        setThree({ Canvas: fiber.Canvas, OrbitControls: drei.OrbitControls });
+      })
+      .catch((err) => {
+        // Log to console for debugging and show a lightweight fallback UI
+        // Do not throw — keep the app functional
+        // eslint-disable-next-line no-console
+        console.error('Failed to load 3D modules:', err);
+        if (mounted) setLoadError(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <motion.div
       className="glassmorphic rounded-xl p-4 shadow-lg border border-gold flex flex-col items-center justify-center cursor-pointer"
@@ -22,15 +46,28 @@ export default function Prize3DCard() {
       whileHover={{ scale: 1.05, boxShadow: '0 0 32px #FFD700' }}
       transition={{ type: 'spring', stiffness: 300 }}
     >
-      <div className="w-full h-48">
-        <Suspense fallback={<div className="text-gold">Loading 3D Model...</div>}>
-          <Canvas camera={{ position: [0, 2, 8], fov: 50 }}>
-            <ambientLight intensity={0.7} />
-            <directionalLight position={[5, 10, 5]} intensity={1.2} />
-            <TeslaModel3 />
-            <OrbitControls enablePan={false} enableZoom={true} />
-          </Canvas>
-        </Suspense>
+      <div className="w-full h-48 flex items-center justify-center">
+        {Three && Three.Canvas && !loadError ? (
+          // Render the dynamically-imported Canvas and OrbitControls
+          // Use any casts to avoid strict typing issues with dynamic imports
+          (() => {
+            const Canvas = Three.Canvas as any;
+            const OrbitControls = Three.OrbitControls as any;
+
+            return (
+              <Canvas camera={{ position: [0, 2, 8], fov: 50 }}>
+                <ambientLight intensity={0.7} />
+                <directionalLight position={[5, 10, 5]} intensity={1.2} />
+                <TeslaModel3 />
+                <OrbitControls enablePan={false} enableZoom={true} />
+              </Canvas>
+            );
+          })()
+        ) : loadError ? (
+          <div className="text-sm text-gray-300 text-center">3D preview unavailable (incompatible browser build)</div>
+        ) : (
+          <div className="text-gold">Loading 3D Model...</div>
+        )}
       </div>
       <span className="font-bold text-gold text-lg mt-2">Tesla Model 3</span>
       <span className="text-xs text-gray-300 text-center">Spin, zoom, and preview the prize in 3D!</span>
