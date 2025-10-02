@@ -9,7 +9,7 @@ const TESLA_IMG = 'https://cdn.builder.io/api/v1/image/assets%2F8904b50318464556
 export default function PrizeCarousel() {
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12} md={6}>
+      <Grid component="div" item xs={12} md={6}>
         <Paper sx={{ p: 2 }}>
           <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <img src={TESLA_IMG} alt="Tesla Model 3" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block', borderRadius: 8 }} />
