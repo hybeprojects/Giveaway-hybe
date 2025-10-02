@@ -209,7 +209,17 @@ export default function Dashboard() {
             </div>
 
             {entry?.is_winner ? (
-              <PrizeRoadmap user={entry} onDataRefresh={fetchDashboardData} />
+              <PrizeRoadmap
+                user={entry}
+                demoMode={isDemo}
+                onDataRefresh={(address?: string) => {
+                  if (isDemo) {
+                    setEntry(prev => prev ? { ...prev, shipping_address: address || '' } : prev);
+                  } else {
+                    fetchDashboardData();
+                  }
+                }}
+              />
             ) : (
               <div className="card card-pad">
                 <h3>Ways to Earn</h3>
