@@ -1,5 +1,4 @@
 import React from 'react';
-import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -8,8 +7,8 @@ const TESLA_IMG = 'https://cdn.builder.io/api/v1/image/assets%2F8904b50318464556
 
 export default function PrizeCarousel() {
   return (
-    <Grid container spacing={2}>
-      <Grid component="div" item xs={12} md={6}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ flex: '1 1 100%', maxWidth: { md: '60%' } }}>
         <Paper sx={{ p: 2 }}>
           <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <img src={TESLA_IMG} alt="Tesla Model 3" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block', borderRadius: 8 }} />
@@ -19,9 +18,9 @@ export default function PrizeCarousel() {
             </Box>
           </Box>
         </Paper>
-      </Grid>
+      </Box>
 
-      <Grid component="div" item xs={12} md={3}>
+      <Box sx={{ flex: '1 1 50%', maxWidth: { md: '20%' } }}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
             <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'rgba(255,215,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
@@ -32,16 +31,16 @@ export default function PrizeCarousel() {
             <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>THIRD PRIZE</Typography>
           </Box>
         </Paper>
-      </Grid>
+      </Box>
 
-      <Grid component="div" item xs={12} md={3}>
+      <Box sx={{ flex: '1 1 50%', maxWidth: { md: '20%' } }}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
             <Typography variant="h6" color="white">VIP HYBE Experience</Typography>
             <Typography variant="body2" color="textSecondary">Private jet, 5-star hotel, backstage access</Typography>
           </Box>
         </Paper>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }
