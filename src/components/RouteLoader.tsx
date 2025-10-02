@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useRef, useState, useEffect } from 'react';
 
 export default function RouteLoader() {
   const location = useLocation();
