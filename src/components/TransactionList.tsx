@@ -1,37 +1,33 @@
 import React from 'react';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
+import ListItemText from '@mui/material/ListItemText';
+import Typography from '@mui/material/Typography';
 
-const transactions = [
-  { type: 'Win', amount: 700000, date: '2025-10-01', status: 'Completed' },
-  { type: 'Withdrawal', amount: 700000, date: '2025-10-02', status: 'Pending' },
-  { type: 'Conversion', amount: 50000, date: '2025-09-30', status: 'Completed' },
+const items = [
+  { id: 1, type: 'Win', method: 'Crypto', amount: 700000, date: 'Oct 02, 2024 14:32' },
 ];
 
 export default function TransactionList() {
   return (
-    <div className="glassmorphic rounded-xl p-4 shadow-lg border border-gold">
-      <h2 className="text-lg font-bold text-gold mb-2">Transactions</h2>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gold">
-            <th className="text-left">Type</th>
-            <th className="text-right">Amount</th>
-            <th className="text-right">Date</th>
-            <th className="text-right">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((tx, idx) => (
-            <tr key={idx} className="border-b border-gray-800">
-              <td>{tx.type}</td>
-              <td className="text-right">${tx.amount.toLocaleString()}</td>
-              <td className="text-right">{tx.date}</td>
-              <td className="text-right">
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${tx.status === 'Completed' ? 'bg-gold text-black' : 'bg-gray-700 text-gold'}`}>{tx.status}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <List>
+      {items.map((it) => (
+        <ListItem key={it.id} sx={{ bgcolor: '#0b0b0b', mb: 1, borderRadius: 2 }}>
+          <ListItemAvatar>
+            <Avatar sx={{ bgcolor: 'rgba(255,215,0,0.12)', color: 'primary.main' }}>✓</Avatar>
+          </ListItemAvatar>
+          <ListItemText
+            primary={<Typography variant="subtitle1" color="white">{it.type}</Typography>}
+            secondary={<>
+              <Typography variant="body2" color="textSecondary">{it.method}</Typography>
+              <Typography variant="caption" display="block" color="textSecondary">{it.date}</Typography>
+            </>}
+          />
+          <Typography variant="h6" color="primary">+ ${it.amount.toLocaleString()}</Typography>
+        </ListItem>
+      ))}
+    </List>
   );
 }

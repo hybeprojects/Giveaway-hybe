@@ -1,29 +1,22 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import Typography from '@mui/material/Typography';
 
-const activities = [
-  { message: 'Kim entered Tesla Model 3 Giveaway', time: '1m ago' },
-  { message: 'Winner credited +$700,000', time: '5m ago' },
+const feed = [
+  { id: 1, text: 'Kim entered Tesla Model 3 Giveaway', time: '5m ago' },
+  { id: 2, text: 'Park won $700,000 in Crypto', time: '1h ago' },
 ];
 
 export default function ActivityFeed() {
   return (
-    <div className="glassmorphic rounded-xl p-4 shadow-lg border border-gold">
-      <h2 className="text-lg font-bold text-gold mb-2">Activity Feed</h2>
-      <ul className="flex flex-col gap-2">
-        {activities.map((act, idx) => (
-          <motion.li
-            key={idx}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="flex justify-between items-center bg-black/30 rounded px-3 py-2"
-          >
-            <span>{act.message}</span>
-            <span className="text-xs text-gold">{act.time}</span>
-          </motion.li>
-        ))}
-      </ul>
-    </div>
+    <List>
+      {feed.map((f) => (
+        <ListItem key={f.id} sx={{ bgcolor: '#0b0b0b', mb: 1, borderRadius: 2 }}>
+          <ListItemText primary={<Typography color="white">{f.text}</Typography>} secondary={<Typography variant="caption" color="textSecondary">{f.time}</Typography>} />
+        </ListItem>
+      ))}
+    </List>
   );
 }
