@@ -44,7 +44,7 @@ const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh, demoMo
               <p className="text-bold">{step.title}</p>
               <p className="subtle">{step.description}</p>
               {index === 0 && !step.isComplete && (
-                <ShippingForm onSuccess={onDataRefresh} />
+                <ShippingForm demoMode={demoMode} onSuccess={(address) => onDataRefresh(address)} />
               )}
             </div>
           </li>
