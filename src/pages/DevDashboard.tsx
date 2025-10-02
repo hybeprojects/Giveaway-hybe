@@ -7,75 +7,112 @@ import ActivityFeed from '../components/ActivityFeed';
 import EntryTable from '../components/EntryTable';
 import Leaderboard from '../components/Leaderboard';
 import Prize3DCard from '../components/Prize3DCard';
-import { FiSearch, FiFilter } from 'react-icons/fi';
+
+// MUI imports
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 export default function DevDashboard() {
   return (
     <AppLayout>
-      <main className="p-6 max-w-7xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Dashboard — HYBE Giveaway</h1>
-            <p className="text-sm text-gray-300">Overview of entries, activity, balances, and prizes.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <input
-                aria-label="Search"
-                placeholder="Search entries, users, emails..."
-                className="pl-10 pr-4 py-2 rounded-lg bg-gray-800 text-sm text-gray-100 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gold"
-              />
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 hover:bg-gray-700">
-              <FiFilter /> Filters
-            </button>
-            <button className="px-4 py-2 rounded-lg bg-gold text-black font-semibold">Create Promo</button>
-          </div>
-        </header>
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Box>
+            <Typography variant="h5" color="white" fontWeight={600}>Dashboard — HYBE Giveaway</Typography>
+            <Typography variant="body2" color="gray">Overview of entries, activity, balances, and prizes.</Typography>
+          </Box>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-                <BalanceCard />
-              </div>
-              <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-                <Prize3DCard />
-              </div>
-            </div>
+          <Box display="flex" alignItems="center" gap={2}>
+            <TextField
+              variant="filled"
+              placeholder="Search entries, users, emails..."
+              size="small"
+              sx={{ backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 1, input: { color: 'white' } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'gray' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <IconButton color="inherit" sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
+              <FilterListIcon />
+            </IconButton>
+            <Button variant="contained" sx={{ bgcolor: 'gold', color: 'black', '&:hover': { bgcolor: '#f3c000' } }}>Create Promo</Button>
+          </Box>
+        </Box>
 
-            <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-              <h2 className="text-lg font-semibold text-white mb-3">Prize Showcase</h2>
-              <PrizeCarousel />
-            </div>
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={8}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <BalanceCard />
+                </Paper>
+              </Grid>
 
-            <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-              <h2 className="text-lg font-semibold text-white mb-3">Recent Transactions</h2>
-              <TransactionList />
-            </div>
-          </div>
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Prize3DCard />
+                </Paper>
+              </Grid>
 
-          <aside className="space-y-6">
-            <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-              <h3 className="text-base font-semibold text-white mb-3">Live Activity</h3>
-              <ActivityFeed />
-            </div>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Typography variant="h6" color="white" mb={1}>Prize Showcase</Typography>
+                  <PrizeCarousel />
+                </Paper>
+              </Grid>
 
-            <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800">
-              <h3 className="text-base font-semibold text-white mb-3">Leaderboard</h3>
-              <Leaderboard />
-            </div>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Typography variant="h6" color="white" mb={1}>Recent Transactions</Typography>
+                  <TransactionList />
+                </Paper>
+              </Grid>
+            </Grid>
+          </Grid>
 
-            <div className="bg-gray-900 rounded-xl p-4 shadow-md border border-gray-800 overflow-auto max-h-72">
-              <h3 className="text-base font-semibold text-white mb-3">My Entries</h3>
-              <EntryTable />
-            </div>
-          </aside>
-        </section>
+          <Grid item xs={12} lg={4}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Typography variant="subtitle1" color="white" mb={1}>Live Activity</Typography>
+                  <ActivityFeed />
+                </Paper>
+              </Grid>
 
-        <footer className="mt-8 text-sm text-gray-500">Last updated: {new Date().toLocaleString()}</footer>
-      </main>
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <Typography variant="subtitle1" color="white" mb={1}>Leaderboard</Typography>
+                  <Leaderboard />
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, bgcolor: '#111827', border: '1px solid rgba(255,255,255,0.04)', maxHeight: 300, overflow: 'auto' }}>
+                  <Typography variant="subtitle1" color="white" mb={1}>My Entries</Typography>
+                  <EntryTable />
+                </Paper>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+
+        <Box mt={4} color="gray">
+          Last updated: {new Date().toLocaleString()}
+        </Box>
+      </Container>
     </AppLayout>
   );
 }
