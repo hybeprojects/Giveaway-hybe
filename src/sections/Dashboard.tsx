@@ -114,13 +114,19 @@ export default function Dashboard() {
   }, [isDemo]);
 
   const withdraw = async () => {
-    if (isDemo) { toast.success('Demo mode: withdrawals are disabled.'); return; }
-    // ... (omitting for brevity, no changes here)
     const amount = prompt('Enter amount to withdraw (available: ' + bal.available.toFixed(2) + '):');
     if (!amount) return;
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) { toast.error('Invalid amount'); return; }
     if (n > bal.available) { toast.error('Insufficient balance.'); return; }
+
+    if (isDemo) {
+      const demoEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request', created_at: new Date().toISOString(), status: 'completed' };
+      setLedger(prev => [demoEntry, ...prev]);
+      toast.success('Withdrawal request successful (demo)');
+      return;
+    }
+
     const optimisticEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request (pending)', created_at: new Date().toISOString(), status: 'pending' };
     setLedger(prevLedger => [optimisticEntry, ...prevLedger]);
     try {
