@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
 function TeslaModel3() {
   // This component will only be rendered inside a client-side Canvas
@@ -18,44 +20,29 @@ export default function Prize3DCard() {
   useEffect(() => {
     let mounted = true;
 
-    // Dynamically import three/fiber and drei on the client only.
-    // If the import fails (version mismatch), we catch it and show a graceful fallback.
     Promise.all([import('@react-three/fiber'), import('@react-three/drei')])
       .then(([fiber, drei]) => {
         if (!mounted) return;
         setThree({ Canvas: fiber.Canvas, OrbitControls: drei.OrbitControls });
       })
       .catch((err) => {
-        // Log to console for debugging and show a lightweight fallback UI
-        // Do not throw — keep the app functional
-        // eslint-disable-next-line no-console
         console.error('Failed to load 3D modules:', err);
         if (mounted) setLoadError(true);
       });
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   return (
-    <motion.div
-      className="glassmorphic rounded-xl p-4 shadow-lg border border-gold flex flex-col items-center justify-center cursor-pointer"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.05, boxShadow: '0 0 32px #FFD700' }}
-      transition={{ type: 'spring', stiffness: 300 }}
-    >
-      <div className="w-full h-48 flex items-center justify-center">
+    <Paper sx={{ p: 2 }}>
+      <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {Three && Three.Canvas && !loadError ? (
-          // Render the dynamically-imported Canvas and OrbitControls
-          // Use any casts to avoid strict typing issues with dynamic imports
           (() => {
             const Canvas = Three.Canvas as any;
             const OrbitControls = Three.OrbitControls as any;
 
             return (
-              <Canvas camera={{ position: [0, 2, 8], fov: 50 }}>
+              <Canvas camera={{ position: [0, 2, 8], fov: 50 }} style={{ height: '100%', width: '100%' }}>
                 <ambientLight intensity={0.7} />
                 <directionalLight position={[5, 10, 5]} intensity={1.2} />
                 <TeslaModel3 />
@@ -64,13 +51,13 @@ export default function Prize3DCard() {
             );
           })()
         ) : loadError ? (
-          <div className="text-sm text-gray-300 text-center">3D preview unavailable (incompatible browser build)</div>
+          <div style={{ color: '#FFD700' }}>3D preview unavailable</div>
         ) : (
-          <div className="text-gold">Loading 3D Model...</div>
+          <div style={{ color: '#FFD700' }}>Loading 3D...</div>
         )}
       </div>
-      <span className="font-bold text-gold text-lg mt-2">Tesla Model 3</span>
-      <span className="text-xs text-gray-300 text-center">Spin, zoom, and preview the prize in 3D!</span>
-    </motion.div>
+      <Typography variant="subtitle1" sx={{ mt: 1 }}>Tesla Model 3</Typography>
+      <Typography variant="caption" color="textSecondary">Spin, zoom, and preview the prize in 3D!</Typography>
+    </Paper>
   );
 }
