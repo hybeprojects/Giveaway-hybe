@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export default function RouteLoader() {
@@ -26,32 +26,44 @@ export default function RouteLoader() {
     let settled = false;
     let inFlight = false;
 
-    const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T | null> => {
-      return new Promise((resolve) => {
-        let done = false;
-        const t = window.setTimeout(() => { if (!done) resolve(null); }, ms);
-        p.then((v) => { done = true; window.clearTimeout(t); resolve(v); })
-         .catch(() => { done = true; window.clearTimeout(t); resolve(null as any); });
-      });
+    const abortableFetch = async (url: string, opts: RequestInit = {}, ms = 2500): Promise<Response | null> => {
+      const controller = new AbortController();
+      const id = window.setTimeout(() => controller.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: controller.signal, ...opts });
+        return res;
+      } catch (e) {
+        return null;
+      } finally {
+        window.clearTimeout(id);
+      }
     };
 
     const tryPing = async (): Promise<boolean> => {
       const ts = Date.now();
       const cacheBuster = `cb=${ts}`;
+
+      // Prioritize function endpoints that indicate backend readiness
       const candidates = [
+        `/.netlify/functions/get-me?${cacheBuster}`,
         `/.netlify/functions/get-events?${cacheBuster}`,
+        `/.netlify/functions/login?${cacheBuster}`,
         `/manifest.webmanifest?${cacheBuster}`,
         `/hybe-logo.svg?${cacheBuster}`,
+        '/',
       ];
 
-      for (let i = 0; i < candidates.length; i++) {
-        const url = candidates[i];
+      // Launch fetches in parallel but with short timeouts; succeed if any OK
+      const fetches = candidates.map((url) => {
         const isFunction = url.includes('/.netlify/functions/');
         const opts: RequestInit = isFunction
           ? { method: 'GET', cache: 'no-store', headers: { accept: 'application/json' } }
           : { method: 'HEAD', cache: 'no-cache' };
+        return abortableFetch(url, opts, 2500);
+      });
 
-        const res = await withTimeout(fetch(url, opts), 2000);
+      const results = await Promise.all(fetches.map((p) => p.catch(() => null)));
+      for (const res of results) {
         if (res && (res as Response).ok) return true;
       }
       return false;
@@ -61,24 +73,28 @@ export default function RouteLoader() {
     const ping = async () => {
       if (settled || inFlight) return;
       inFlight = true;
-      const ok = await tryPing();
-      inFlight = false;
-      if (ok) {
-        settled = true;
-        hideTimer.current = window.setTimeout(() => setVisible(false), 300);
-        if (pollTimer.current) window.clearInterval(pollTimer.current);
-        return;
-      }
-      if (!settled && Date.now() - startedAt > 5000) {
-        settled = true;
-        hideTimer.current = window.setTimeout(() => setVisible(false), 300);
-        if (pollTimer.current) window.clearInterval(pollTimer.current);
+      try {
+        const ok = await tryPing();
+        if (ok) {
+          settled = true;
+          // Keep spinner visible for a short fade-out to avoid flicker
+          hideTimer.current = window.setTimeout(() => setVisible(false), 300);
+          if (pollTimer.current) window.clearInterval(pollTimer.current);
+          return;
+        }
+        if (!settled && Date.now() - startedAt > 10000) {
+          settled = true;
+          hideTimer.current = window.setTimeout(() => setVisible(false), 300);
+          if (pollTimer.current) window.clearInterval(pollTimer.current);
+        }
+      } finally {
+        inFlight = false;
       }
     };
 
     // Initial ping immediately, then poll
     ping();
-    pollTimer.current = window.setInterval(ping, 500);
+    pollTimer.current = window.setInterval(ping, 600);
 
     prevPath.current = location.pathname + location.search + location.hash;
 
