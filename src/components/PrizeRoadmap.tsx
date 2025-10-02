@@ -4,7 +4,8 @@ import ShippingForm from './ShippingForm';
 
 interface PrizeRoadmapProps {
   user: UserEntry | null;
-  onDataRefresh: () => void;
+  onDataRefresh: (address?: string) => void;
+  demoMode?: boolean;
 }
 
 interface Step {
@@ -13,7 +14,7 @@ interface Step {
   isComplete: boolean;
 }
 
-const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh }) => {
+const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh, demoMode = false }) => {
   const steps: Step[] = [
     {
       title: 'Step 1: Confirm Your Details',
@@ -43,7 +44,7 @@ const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh }) => {
               <p className="text-bold">{step.title}</p>
               <p className="subtle">{step.description}</p>
               {index === 0 && !step.isComplete && (
-                <ShippingForm onSuccess={onDataRefresh} />
+                <ShippingForm demoMode={demoMode} onSuccess={(address) => onDataRefresh(address)} />
               )}
             </div>
           </li>

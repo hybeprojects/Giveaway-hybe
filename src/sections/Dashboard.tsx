@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getMe, clearLocalSession, LedgerEntry, UserEntry } from '../utils/auth';
 import { useToast } from '../components/Toast';
 import WinnerWelcomeModal from '../components/WinnerWelcomeModal';
@@ -44,6 +44,8 @@ function calculateBalances(ledger: LedgerEntry[]) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDemo = location.pathname.includes('/dashboard/preview') || (typeof window !== 'undefined' && new URLSearchParams(location.search).get('demo') === '1');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entry, setEntry] = useState<UserEntry | null>(null);
@@ -76,6 +78,31 @@ export default function Dashboard() {
   useEffect(() => {
     const initialLoad = async () => {
       setLoading(true);
+      if (isDemo) {
+        const demoEntry: UserEntry = {
+          email: 'demo@hybe.dev',
+          name: 'Demo User',
+          country: 'US',
+          base: 100,
+          share: 50,
+          invite: 25,
+          total: 175,
+          created_at: new Date().toISOString(),
+          is_winner: false,
+          prize_details: null,
+          shipping_address: null,
+        };
+        const now = new Date();
+        const demoLedger: LedgerEntry[] = [
+          { id: '1', type: 'credit', amount: 100, currency: 'points', note: 'Welcome bonus', created_at: new Date(now.getTime() - 86400000).toISOString(), status: 'available' },
+          { id: '2', type: 'credit', amount: 50, currency: 'points', note: 'Share reward', created_at: new Date(now.getTime() - 3600 * 1000).toISOString(), status: 'available' },
+          { id: '3', type: 'debit', amount: 20, currency: 'points', note: 'Withdrawal request', created_at: new Date(now.getTime() - 1800 * 1000).toISOString(), status: 'completed' },
+        ];
+        setEntry(demoEntry);
+        setLedger(demoLedger);
+        setLoading(false);
+        return;
+      }
       const userEntry = await fetchDashboardData();
       if (userEntry?.is_winner && sessionStorage.getItem('winnerModalShown') !== 'true') {
         setWinnerModalOpen(true);
@@ -84,15 +111,22 @@ export default function Dashboard() {
       setLoading(false);
     };
     initialLoad();
-  }, []);
+  }, [isDemo]);
 
   const withdraw = async () => {
-    // ... (omitting for brevity, no changes here)
     const amount = prompt('Enter amount to withdraw (available: ' + bal.available.toFixed(2) + '):');
     if (!amount) return;
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) { toast.error('Invalid amount'); return; }
     if (n > bal.available) { toast.error('Insufficient balance.'); return; }
+
+    if (isDemo) {
+      const demoEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request', created_at: new Date().toISOString(), status: 'completed' };
+      setLedger(prev => [demoEntry, ...prev]);
+      toast.success('Withdrawal request successful (demo)');
+      return;
+    }
+
     const optimisticEntry: LedgerEntry = { id: crypto.randomUUID(), type: 'debit', amount: n, currency: 'points', note: 'Withdrawal request (pending)', created_at: new Date().toISOString(), status: 'pending' };
     setLedger(prevLedger => [optimisticEntry, ...prevLedger]);
     try {
@@ -181,7 +215,17 @@ export default function Dashboard() {
             </div>
 
             {entry?.is_winner ? (
-              <PrizeRoadmap user={entry} onDataRefresh={fetchDashboardData} />
+              <PrizeRoadmap
+                user={entry}
+                demoMode={isDemo}
+                onDataRefresh={(address?: string) => {
+                  if (isDemo) {
+                    setEntry(prev => prev ? { ...prev, shipping_address: address || '' } : prev);
+                  } else {
+                    fetchDashboardData();
+                  }
+                }}
+              />
             ) : (
               <div className="card card-pad">
                 <h3>Ways to Earn</h3>
