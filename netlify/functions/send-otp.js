@@ -25,16 +25,20 @@ const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
-    // For 'login', we don't want to create a new user if they don't exist.
-    // For 'signup', we let Supabase create the user (default behavior).
+    // Default: don't create user for 'login'. We'll fallback to creating on user-not-found.
     const shouldCreateUser = purpose !== 'login';
 
-    const { data, error } = await supabase.auth.signInWithOtp({
+    let { data, error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        shouldCreateUser,
-      },
+      options: { shouldCreateUser },
     });
+
+    // If user doesn't exist and we were in login mode, retry creating the user to keep OTP-only flow unified.
+    if (error && /user.*not.*found/i.test(error.message || '') && purpose === 'login') {
+      console.warn('User not found on OTP send; retrying with shouldCreateUser=true for', email);
+      const retry = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      data = retry.data; error = retry.error;
+    }
 
     if (error) {
       console.error('Supabase OTP error:', {
@@ -55,7 +59,7 @@ const handler = async (event) => {
       const isUserNotFound = /user.*not.*found/i.test(error.message || '');
       const statusCode = isUserNotFound ? 404 : 400;
       const errorMessage = isUserNotFound
-        ? 'Email not found. Please sign up first.'
+        ? 'Email not found.'
         : 'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.';
       return { statusCode, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
     }
