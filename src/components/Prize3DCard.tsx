@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import React, { useEffect, useState } from 'react';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 function TeslaModel3() {
-  // This component will only be rendered inside a client-side Canvas
   return (
     <mesh rotation={[0.4, 0.8, 0]}>
       <boxGeometry args={[2, 1, 4]} />
