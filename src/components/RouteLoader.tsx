@@ -47,7 +47,6 @@ export default function RouteLoader() {
       const candidates = [
         `/.netlify/functions/get-me?${cacheBuster}`,
         `/.netlify/functions/get-events?${cacheBuster}`,
-        `/.netlify/functions/login?${cacheBuster}`,
         `/manifest.webmanifest?${cacheBuster}`,
         `/hybe-logo.svg?${cacheBuster}`,
         '/',
