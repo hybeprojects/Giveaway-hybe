@@ -281,8 +281,13 @@ const EntryFormPage: React.FC = () => {
 
     // Ensure required server-side names are present (some use different keys)
     // Map known aliases
-    if (payload.favorite_artist === undefined && payload.favorite_artist === null && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
+    if ((payload.favorite_artist == null) && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
     if (payload.referral_code === undefined && (data as any).referralCode) payload.referral_code = (data as any).referralCode;
+    // Map dob to birthdate to match server expectations
+    if (payload.dob && !payload.birthdate) {
+      payload.birthdate = payload.dob;
+      delete payload.dob;
+    }
     // Explicit booleans for consents
     payload.consent_terms = !!payload.consent_terms;
     payload.consent_privacy = !!payload.consent_privacy;
