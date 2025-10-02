@@ -92,6 +92,7 @@ const EntryFormPage: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string>('');
   const [resendIn, setResendIn] = useState(0);
@@ -280,8 +281,13 @@ const EntryFormPage: React.FC = () => {
 
     // Ensure required server-side names are present (some use different keys)
     // Map known aliases
-    if (payload.favorite_artist === undefined && payload.favorite_artist === null && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
+    if ((payload.favorite_artist == null) && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
     if (payload.referral_code === undefined && (data as any).referralCode) payload.referral_code = (data as any).referralCode;
+    // Map dob to birthdate to match server expectations
+    if (payload.dob && !payload.birthdate) {
+      payload.birthdate = payload.dob;
+      delete payload.dob;
+    }
     // Explicit booleans for consents
     payload.consent_terms = !!payload.consent_terms;
     payload.consent_privacy = !!payload.consent_privacy;
@@ -293,6 +299,7 @@ const EntryFormPage: React.FC = () => {
         setPendingPayload(payload);
         setPendingEmail(data.email);
         setOtpError(null);
+        setOtpVerified(false);
         setOtpCode('');
         setOtpOpen(true);
         setResendIn(RESEND_COOLDOWN_SECONDS);
@@ -317,13 +324,17 @@ const EntryFormPage: React.FC = () => {
     if (!pendingEmail || !pendingPayload || isVerifying) return;
     setIsVerifying(true);
     setOtpError(null);
+    setOtpVerified(false);
     try {
       const token = await verifyOtpFn(pendingEmail, otpCode.trim(), 'login');
+      setOtpVerified(true);
+      await new Promise(r => setTimeout(r, 350));
       saveLocalSession(token);
       setSessionEmail(pendingEmail);
       await submitEntryWithToken(token, pendingPayload);
       setOtpOpen(false);
     } catch (e: any) {
+      setOtpVerified(false);
       setOtpError(e?.message || 'Verification failed');
     } finally {
       setIsVerifying(false);
@@ -346,6 +357,7 @@ const EntryFormPage: React.FC = () => {
     setOtpOpen(false);
     setOtpCode('');
     setOtpError(null);
+    setOtpVerified(false);
     setResendIn(0);
   };
 
@@ -585,9 +597,15 @@ const EntryFormPage: React.FC = () => {
             <div className="otp-input-row">
               <input
                 id="otp-code"
-                className={`form-control ${otpError ? 'is-invalid' : ''}`}
+                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''}`}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
+                onChange={(e) => setOtpCode(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = (e.clipboardData || (window as any).clipboardData).getData('text');
+                  const digits = String(text || '').replace(/[^\d]/g, '').slice(0, 6);
+                  if (digits) setOtpCode(digits);
+                }}
                 inputMode="numeric"
                 pattern="\\d*"
                 maxLength={6}
@@ -595,8 +613,10 @@ const EntryFormPage: React.FC = () => {
                 aria-describedby={otpError ? 'otp-code-error' : undefined}
                 autoFocus
               />
-              {isVerifying && (
-                <div className="otp-trailing" aria-hidden="true"><div className="loading-spinner" /></div>
+              {(isVerifying || otpVerified) && (
+                <div className="otp-trailing" aria-hidden="true">
+                  {otpVerified ? <div className="otp-check" aria-hidden="true" /> : <div className="loading-spinner" />}
+                </div>
               )}
             </div>
             {otpError && <div id="otp-code-error" className="invalid-feedback d-block">{otpError}</div>}
