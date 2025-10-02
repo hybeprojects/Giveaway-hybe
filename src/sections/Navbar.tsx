@@ -1,24 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { getLocalSession } from '../utils/auth';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthed, setIsAuthed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const apply = () => setIsAuthed(!!getLocalSession());
-    apply();
-    const onStorage = () => apply();
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('focus', apply);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('focus', apply);
-    };
-  }, []);
 
   const handleScroll = (id: string) => {
     setIsMenuOpen(false);
@@ -50,11 +36,6 @@ export default function Navbar() {
           <button className="nav-button" onClick={() => handleScroll('enter')}>Enter Now</button>
           <Link className="nav-button" to="/entry" onClick={() => setIsMenuOpen(false)}>Entry Form</Link>
           <button className="nav-button" onClick={() => handleScroll('updates')}>Live Updates</button>
-          {isAuthed ? (
-            <Link className="nav-button" to="/dashboard" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-          ) : (
-            <Link className="nav-button" to="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
-          )}
         </nav>
       </div>
     </header>

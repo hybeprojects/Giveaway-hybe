@@ -66,26 +66,6 @@ export async function verifyOtp(email: string, code: string, purpose: 'login' | 
   return typed.session.access_token;
 }
 
-export async function setPassword(password: string): Promise<void> {
-  const sessionToken = localStorage.getItem('local_session') || '';
-  if (!sessionToken) throw new Error('Not authorized');
-  const endpoint = '/.netlify/functions/set-password';
-  const res = await tryFetch(endpoint, { method: 'POST', headers: { ...buildHeaders(), Authorization: `Bearer ${sessionToken}` }, body: JSON.stringify({ password }) });
-  await parseJsonOrThrow(res as any, 'Failed to set password');
-}
-
-export async function loginWithPassword(email: string, password: string): Promise<void> {
-  const endpoint = '/.netlify/functions/login';
-  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, password }) });
-  await parseJsonOrThrow(res as any, 'Login failed');
-}
-
-export async function sendMagicLink(email: string, redirectPath: string = '/signup'): Promise<void> {
-  const res = await tryFetch('/.netlify/functions/send-magic-link', { method: 'POST', headers: buildHeaders(), body: JSON.stringify({ email, redirectPath }) });
-  const data = await parseJsonOrThrow(res as any, 'Failed to send magic link');
-  if (!(data && data.ok)) throw new Error(data?.error || 'Failed to send magic link');
-}
-
 export function saveLocalSession(session: string) {
   localStorage.setItem('local_session', session);
 }
