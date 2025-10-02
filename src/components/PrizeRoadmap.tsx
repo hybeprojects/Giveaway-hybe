@@ -14,7 +14,7 @@ interface Step {
   isComplete: boolean;
 }
 
-const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh }) => {
+const PrizeRoadmap: React.FC<PrizeRoadmapProps> = ({ user, onDataRefresh, demoMode = false }) => {
   const steps: Step[] = [
     {
       title: 'Step 1: Confirm Your Details',
