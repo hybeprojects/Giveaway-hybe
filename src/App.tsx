@@ -85,6 +85,7 @@ export default function App() {
       <Routes location={location}>
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Suspense fallback={null}><Login /></Suspense></PageTransition>} />
+        <Route path="/dashboard/preview" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
         <Route path="/dashboard/:userId" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
         <Route path="/entry" element={<PageTransition><Suspense fallback={null}><EntryFormPage /></Suspense></PageTransition>} />
