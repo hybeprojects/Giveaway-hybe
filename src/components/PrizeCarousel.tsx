@@ -21,7 +21,7 @@ export default function PrizeCarousel() {
         </Paper>
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid component="div" item xs={12} md={3}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
             <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'rgba(255,215,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
@@ -34,7 +34,7 @@ export default function PrizeCarousel() {
         </Paper>
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid component="div" item xs={12} md={3}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100%">
             <Typography variant="h6" color="white">VIP HYBE Experience</Typography>
