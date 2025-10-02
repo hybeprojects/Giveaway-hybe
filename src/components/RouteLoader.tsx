@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export default function RouteLoader() {
@@ -23,8 +23,7 @@ export default function RouteLoader() {
     if (pollTimer.current) window.clearInterval(pollTimer.current);
 
     const startedAt = Date.now();
-    let settled = false;
-    let inFlight = false;
+    let cancelled = false;
 
     const abortableFetch = async (url: string, opts: RequestInit = {}, ms = 2500): Promise<Response | null> => {
       const controller = new AbortController();
@@ -42,18 +41,14 @@ export default function RouteLoader() {
     const tryPing = async (): Promise<boolean> => {
       const ts = Date.now();
       const cacheBuster = `cb=${ts}`;
-
-      // Prioritize function endpoints that indicate backend readiness
       const candidates = [
         `/.netlify/functions/get-me?${cacheBuster}`,
         `/.netlify/functions/get-events?${cacheBuster}`,
-        `/.netlify/functions/login?${cacheBuster}`,
         `/manifest.webmanifest?${cacheBuster}`,
         `/hybe-logo.svg?${cacheBuster}`,
         '/',
       ];
 
-      // Launch fetches in parallel but with short timeouts; succeed if any OK
       const fetches = candidates.map((url) => {
         const isFunction = url.includes('/.netlify/functions/');
         const opts: RequestInit = isFunction
@@ -69,36 +64,82 @@ export default function RouteLoader() {
       return false;
     };
 
-    // Ping backend repeatedly until healthy (or a reasonable max time)
-    const ping = async () => {
-      if (settled || inFlight) return;
-      inFlight = true;
+    // Utility: wait for images within main content to load
+    const waitForImages = () => new Promise<void>((resolve) => {
       try {
-        const ok = await tryPing();
-        if (ok) {
-          settled = true;
-          // Keep spinner visible for a short fade-out to avoid flicker
-          hideTimer.current = window.setTimeout(() => setVisible(false), 300);
-          if (pollTimer.current) window.clearInterval(pollTimer.current);
-          return;
-        }
-        if (!settled && Date.now() - startedAt > 10000) {
-          settled = true;
-          hideTimer.current = window.setTimeout(() => setVisible(false), 300);
-          if (pollTimer.current) window.clearInterval(pollTimer.current);
-        }
-      } finally {
-        inFlight = false;
+        const selector = 'main, .entry-form-page, #root, .section, .route-view';
+        const container = document.querySelector(selector) || document.body;
+        const images = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+        if (images.length === 0) return resolve();
+        let remaining = images.length;
+        const onDone = () => {
+          remaining -= 1;
+          if (remaining <= 0) resolve();
+        };
+        images.forEach((img) => {
+          if (img.complete) {
+            onDone();
+            return;
+          }
+          const onLoad = () => { cleanup(); onDone(); };
+          const onError = () => { cleanup(); onDone(); };
+          const cleanup = () => { img.removeEventListener('load', onLoad); img.removeEventListener('error', onError); };
+          img.addEventListener('load', onLoad);
+          img.addEventListener('error', onError);
+        });
+        // Safety: if images never fire, resolve after timeout
+        window.setTimeout(() => resolve(), 8000);
+      } catch {
+        resolve();
       }
+    });
+
+    // Utility: wait for fonts to be ready (if available)
+    const waitForFonts = async () => {
+      try {
+        if ((document as any).fonts && (document as any).fonts.ready) await (document as any).fonts.ready;
+      } catch {}
     };
 
-    // Initial ping immediately, then poll
-    ping();
-    pollTimer.current = window.setInterval(ping, 600);
+    // Wait for React to mount, images/fonts and backend readiness (or until max timeout)
+    (async () => {
+      const maxWait = 15000; // 15s hard cap
+      const start = Date.now();
 
+      // Start backend polling in parallel
+      let backendOk = false;
+      const backendPoll = async () => {
+        while (!backendOk && Date.now() - start < maxWait && !cancelled) {
+          try {
+            backendOk = await tryPing();
+            if (backendOk) break;
+          } catch {}
+          await new Promise(r => setTimeout(r, 600));
+        }
+      };
+
+      const backendPromise = backendPoll();
+      const imagesPromise = waitForImages();
+      const fontsPromise = waitForFonts();
+
+      // Wait for all critical resources or until timeout
+      await Promise.race([
+        (async () => {
+          await Promise.all([backendPromise, imagesPromise, fontsPromise]);
+        })(),
+        new Promise<void>(resolve => setTimeout(() => resolve(), maxWait)),
+      ]);
+
+      if (cancelled) return;
+      // Keep spinner visible for a short fade-out to avoid flicker
+      hideTimer.current = window.setTimeout(() => setVisible(false), 300);
+    })();
+
+    // Update prevPath and ensure polling reference (kept for cleanup)
     prevPath.current = location.pathname + location.search + location.hash;
 
     return () => {
+      cancelled = true;
       if (hideTimer.current) window.clearTimeout(hideTimer.current);
       if (pollTimer.current) window.clearInterval(pollTimer.current);
     };
