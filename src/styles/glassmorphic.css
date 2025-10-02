@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Glassmorphic card utility */
+.glassmorphic {
+  background: rgba(30, 30, 30, 0.7);
+  box-shadow: 0 4px 32px 0 rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  border-radius: 1rem;
+  border: 1px solid #FFD700;
+}
+
+.text-gold {
+  color: #FFD700;
+}
+.bg-gold {
+  background-color: #FFD700;
+}
+.bg-silver {
+  background-color: #C0C0C0;
+}
+.glow-pulse {
+  animation: glowPulse 1.2s infinite alternate;
+}
+@keyframes glowPulse {
+  0% { text-shadow: 0 0 8px #FFD700, 0 0 2px #fff; }
+  100% { text-shadow: 0 0 24px #FFD700, 0 0 8px #fff; }
+}

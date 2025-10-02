@@ -6,6 +6,7 @@ import './styles/global.css';
 import './styles/trust.css';
 import './styles/countdown.css';
 import './styles/responsive.css';
+import './styles/glassmorphic.css';
 
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'light' || savedTheme === 'dark') {

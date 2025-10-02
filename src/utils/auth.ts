@@ -14,7 +14,7 @@ export type UserEntry = {
   prize_details?: string | null;
   shipping_address?: string | null;
 };
-export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; created_at: string; status?: 'pending' | 'available' };
+export type LedgerEntry = { id: string; type: 'credit' | 'debit'; amount: number; currency: string; note: string; created_at: string; status?: 'pending' | 'available' | 'completed' };
 export type GetMeResponse = { ok: true; entry: UserEntry; ledger: LedgerEntry[] } | { ok: false; error: string };
 
 export async function tryFetch(url: string, opts: RequestInit) {

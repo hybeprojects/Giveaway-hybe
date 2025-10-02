@@ -7,6 +7,8 @@ import RouteLoader from './components/RouteLoader';
 import LazyVisible from './components/LazyVisible';
 import ProtectedRoute from './components/ProtectedRoute';
 
+import DevDashboard from './pages/DevDashboard';
+
 const Hero = lazy(() => import('./sections/Hero'));
 const Prizes = lazy(() => import('./sections/Prizes'));
 const VIPExperience = lazy(() => import('./sections/VIPExperience'));
@@ -85,15 +87,16 @@ export default function App() {
       <Routes location={location}>
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Suspense fallback={null}><Login /></Suspense></PageTransition>} />
-        <Route path="/dashboard/preview" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
-        <Route path="/dashboard" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
-        <Route path="/dashboard/:userId" element={<PageTransition><ProtectedRoute><Suspense fallback={null}><Dashboard /></Suspense></ProtectedRoute></PageTransition>} />
+  <Route path="/dashboard/preview" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
+  <Route path="/dashboard" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
+  <Route path="/dashboard/:userId" element={<PageTransition><Suspense fallback={null}><Dashboard /></Suspense></PageTransition>} />
         <Route path="/entry" element={<PageTransition><Suspense fallback={null}><EntryFormPage /></Suspense></PageTransition>} />
         <Route path="/verify" element={<PageTransition><Suspense fallback={null}><OtpVerifyPage /></Suspense></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Suspense fallback={null}><MagicLinkSignupPage /></Suspense></PageTransition>} />
         <Route path="/MagicLinkSignupPage" element={<PageTransition><Suspense fallback={null}><MagicLinkSignupPage /></Suspense></PageTransition>} />
         <Route path="/verify-password" element={<PageTransition><Suspense fallback={null}><VerifyPasswordOtpPage /></Suspense></PageTransition>} />
         <Route path="/entry/success" element={<PageTransition><Suspense fallback={null}><EntrySuccessPage /></Suspense></PageTransition>} />
+        <Route path="/dev-dashboard" element={<PageTransition><DevDashboard /></PageTransition>} />
         <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
       </Routes>
     </>
