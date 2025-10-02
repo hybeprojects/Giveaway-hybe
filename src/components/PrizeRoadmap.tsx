@@ -4,7 +4,8 @@ import ShippingForm from './ShippingForm';
 
 interface PrizeRoadmapProps {
   user: UserEntry | null;
-  onDataRefresh: () => void;
+  onDataRefresh: (address?: string) => void;
+  demoMode?: boolean;
 }
 
 interface Step {
