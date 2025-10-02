@@ -1,4 +1,3 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './sections/Navbar';
