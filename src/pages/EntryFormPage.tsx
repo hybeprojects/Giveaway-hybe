@@ -253,17 +253,38 @@ const EntryFormPage: React.FC = () => {
   const onSubmit = async (data: any) => {
     setSubmissionError(null);
 
-    const payload = {
-      email: sessionEmail || data.email,
-      full_name: data.fullName,
-      phone: data.phone || null,
-      birthdate: data.dob || null,
-      country: data.country,
-      consent_terms: !!data.consentTerms,
-      consent_privacy: !!data.consentPrivacy,
-      favorite_artist: data.favoriteArtist || null,
-      referral_code: data.referralCode || null,
-    };
+    // Convert form data (camelCase) to server-friendly snake_case keys
+    const camelToSnake = (s: string) => s.replace(/([A-Z])/g, '_$1').toLowerCase();
+    const payload: Record<string, any> = {};
+
+    // Ensure email uses session if present
+    payload.email = sessionEmail || data.email;
+
+    // Iterate all form fields and map to snake_case
+    Object.keys(data).forEach((k) => {
+      // Skip email since handled
+      if (k === 'email') return;
+      const snake = camelToSnake(k);
+      let val = (data as any)[k];
+      // Normalize empty strings to null for optional fields
+      if (typeof val === 'string') {
+        val = val.trim();
+        if (val === '') val = null;
+      }
+      // Normalize checkboxes to booleans
+      if (k === 'consentTerms' || k === 'consentPrivacy' || k === 'useAsMailingAddress' || k === 'marketingOptIn') {
+        val = !!val;
+      }
+      payload[snake] = val;
+    });
+
+    // Ensure required server-side names are present (some use different keys)
+    // Map known aliases
+    if (payload.favorite_artist === undefined && payload.favorite_artist === null && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
+    if (payload.referral_code === undefined && (data as any).referralCode) payload.referral_code = (data as any).referralCode;
+    // Explicit booleans for consents
+    payload.consent_terms = !!payload.consent_terms;
+    payload.consent_privacy = !!payload.consent_privacy;
 
     const token = localStorage.getItem('local_session') || '';
     if (!token) {
