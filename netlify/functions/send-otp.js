@@ -1,4 +1,4 @@
-import { supabaseAnon as supabase } from './utils/supabase.js';
+import { supabaseAnon as supabase, supabaseAdmin } from './utils/supabase.js';
 import { CORS_HEADERS, preflight } from './utils/cors.js';
 
 // IMPORTANT: Supabase email template customization
@@ -27,7 +27,7 @@ const handler = async (event) => {
       return { statusCode: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
-    // Default: don't create user for 'login'. We'll fallback to creating on user-not-found.
+    // Default: don't create user for 'login'. We'll fallback to admin-provision when signups are disabled.
     const shouldCreateUser = purpose !== 'login';
 
     let { data, error } = await supabase.auth.signInWithOtp({
@@ -35,10 +35,25 @@ const handler = async (event) => {
       options: { shouldCreateUser },
     });
 
-    // If user doesn't exist and we were in login mode, retry creating the user to keep OTP-only flow unified.
-    if (error && /user.*not.*found/i.test(error.message || '') && purpose === 'login') {
-      console.warn('User not found on OTP send; retrying with shouldCreateUser=true for', email);
-      const retry = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const msg = (error && (error.message || '')) || '';
+    const isUserNotFound = /user.*not.*found/i.test(msg);
+    const isSignupsDisabled = error && (error.status === 422 || /signups.*not.*allowed.*otp/i.test(msg));
+
+    // If user doesn't exist or signups are disabled during login, auto-provision with service role then send login OTP.
+    if (error && purpose === 'login' && (isUserNotFound || isSignupsDisabled)) {
+      try {
+        const created = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: false });
+        if (created.error && !/exist/i.test(created.error.message || '')) {
+          // If creation failed for a reason other than already exists, surface the error
+          throw created.error;
+        }
+      } catch (provisionErr) {
+        console.error('Failed to provision user with service role:', provisionErr);
+        return { statusCode: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Unable to provision account for OTP login', detail: provisionErr.message || String(provisionErr) }) };
+      }
+
+      // Try again to send OTP as a login (no signup)
+      const retry = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       data = retry.data; error = retry.error;
     }
 
@@ -58,9 +73,9 @@ const handler = async (event) => {
         };
       }
 
-      const isUserNotFound = /user.*not.*found/i.test(error.message || '');
-      const statusCode = isUserNotFound ? 404 : 400;
-      const errorMessage = isUserNotFound
+      const stillUserNotFound = /user.*not.*found/i.test(error.message || '');
+      const statusCode = stillUserNotFound ? 404 : 400;
+      const errorMessage = stillUserNotFound
         ? 'Email not found.'
         : 'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.';
       return { statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
