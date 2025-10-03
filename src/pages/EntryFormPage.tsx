@@ -134,14 +134,72 @@ const EntryFormPage: React.FC = () => {
     }
   }, [setValue]);
 
-  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.)
+  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.).
+  // Falls back to XMLHttpRequest if fetch fails or is wrapped and throws synchronously.
   async function safeFetch(input: RequestInfo, init?: RequestInit) {
     try {
       const res = await (fetch as any)(input, init);
       return res;
     } catch (e) {
       console.warn('[safeFetch] network error or fetch wrapper failure for', input, e);
-      return null as unknown as Response;
+      // Fallback to XMLHttpRequest-based implementation to avoid reliance on window.fetch wrappers
+      try {
+        return await new Promise<Response>((resolve, reject) => {
+          try {
+            const xhr = new XMLHttpRequest();
+            const method = (init && init.method) ? init.method.toUpperCase() : 'GET';
+            const url = String(input);
+            xhr.open(method, url, true);
+
+            // Set headers if provided
+            if (init && init.headers) {
+              const headers = init.headers as Record<string, string> | Headers;
+              if (headers instanceof Headers) {
+                headers.forEach((value, key) => xhr.setRequestHeader(key, value));
+              } else {
+                Object.entries(headers as Record<string, string>).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+              }
+            }
+
+            xhr.onreadystatechange = () => {
+              if (xhr.readyState !== 4) return;
+              const status = xhr.status || 0;
+              const ok = status >= 200 && status < 300;
+
+              const shim: Partial<Response> = {
+                ok,
+                status,
+                statusText: xhr.statusText,
+                url: url,
+                text: async () => xhr.responseText,
+                json: async () => {
+                  try {
+                    return JSON.parse(xhr.responseText || 'null');
+                  } catch (err) {
+                    throw err;
+                  }
+                }
+              };
+
+              resolve(shim as unknown as Response);
+            };
+
+            xhr.onerror = () => reject(new TypeError('Network request failed'));
+
+            // Send body for methods like POST
+            if (init && init.body != null) {
+              xhr.send(init.body as any);
+            } else {
+              xhr.send();
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      } catch (xhrErr) {
+        console.warn('[safeFetch] XHR fallback failed for', input, xhrErr);
+        return null as unknown as Response;
+      }
     }
   }
 
