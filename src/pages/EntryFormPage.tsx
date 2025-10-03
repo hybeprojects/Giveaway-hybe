@@ -237,28 +237,25 @@ const EntryFormPage: React.FC = () => {
      ))]
   ), [countryOptions]);
 
-  async function submitEntryWithToken(token: string, payload: any) {
+  function toUrlEncoded(data: Record<string, any>) {
+    return Object.keys(data)
+      .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(data[key] ?? ''))
+      .join('&');
+  }
+
+  async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
-      const response = await fetch('/.netlify/functions/post-entry', {
+      const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
+      const response = await fetch('/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const message = errorData.error || 'An unknown error occurred.';
-        if (message.toLowerCase().includes('referral code')) {
-          setError('referralCode', { type: 'server', message });
-        } else {
-          setSubmissionError(message);
-        }
+      if (!response || !response.ok) {
+        setSubmissionError('Form submit failed. Please try again.');
         return;
       }
-
       navigate('/entry/success');
     } catch (err) {
       console.error('Submission Error:', err);
@@ -269,46 +266,31 @@ const EntryFormPage: React.FC = () => {
   const onSubmit = async (data: any) => {
     setSubmissionError(null);
 
-    // Convert form data (camelCase) to server-friendly snake_case keys
-    const camelToSnake = (s: string) => s.replace(/([A-Z])/g, '_$1').toLowerCase();
-    const payload: Record<string, any> = {};
+    // Build Netlify Forms payload using field names matching index.html hidden form
+    const payload: Record<string, any> = {
+      referralCode: data.referralCode?.trim() || '',
+      fullName: data.fullName?.trim() || '',
+      dob: data.dob || '',
+      gender: data.gender || '',
+      email: (sessionEmail || data.email || '').trim(),
+      phone: data.phone || '',
+      zangiId: data.zangiId?.trim() || '',
+      addressLine1: data.addressLine1?.trim() || '',
+      addressLine2: data.addressLine2?.trim() || '',
+      city: data.city?.trim() || '',
+      state: data.state?.trim() || '',
+      postalCode: data.postalCode?.trim() || '',
+      country: data.country || '',
+      useAsMailingAddress: data.useAsMailingAddress ? 'true' : 'false',
+      fanPreferenceBranch: data.fanPreferenceBranch || '',
+      favoriteGroup: data.favoriteGroup || '',
+      favoriteArtist: data.favoriteArtist || '',
+      consentTerms: data.consentTerms ? 'true' : 'false',
+      consentPrivacy: data.consentPrivacy ? 'true' : 'false',
+    };
 
-    // Ensure email uses session if present
-    payload.email = sessionEmail || data.email;
-
-    // Iterate all form fields and map to snake_case
-    Object.keys(data).forEach((k) => {
-      // Skip email since handled
-      if (k === 'email') return;
-      const snake = camelToSnake(k);
-      let val = (data as any)[k];
-      // Normalize empty strings to null for optional fields
-      if (typeof val === 'string') {
-        val = val.trim();
-        if (val === '') val = null;
-      }
-      // Normalize checkboxes to booleans
-      if (k === 'consentTerms' || k === 'consentPrivacy' || k === 'useAsMailingAddress' || k === 'marketingOptIn') {
-        val = !!val;
-      }
-      payload[snake] = val;
-    });
-
-    // Ensure required server-side names are present (some use different keys)
-    // Map known aliases
-    if ((payload.favorite_artist == null) && data.favoriteArtist) payload.favorite_artist = data.favoriteArtist;
-    if (payload.referral_code === undefined && (data as any).referralCode) payload.referral_code = (data as any).referralCode;
-    // Map dob to birthdate to match server expectations
-    if (payload.dob && !payload.birthdate) {
-      payload.birthdate = payload.dob;
-      delete payload.dob;
-    }
-    // Explicit booleans for consents
-    payload.consent_terms = !!payload.consent_terms;
-    payload.consent_privacy = !!payload.consent_privacy;
-
-    const token = localStorage.getItem('local_session') || '';
-    if (!token) {
+    const hasSession = !!localStorage.getItem('local_session');
+    if (!hasSession) {
       try {
         await requestOtp(data.email, 'login');
         setPendingPayload(payload);
@@ -324,7 +306,7 @@ const EntryFormPage: React.FC = () => {
       return;
     }
 
-    await submitEntryWithToken(token, payload);
+    await submitEntryToNetlify(payload);
   };
 
   useEffect(() => {
@@ -346,7 +328,7 @@ const EntryFormPage: React.FC = () => {
       await new Promise(r => setTimeout(r, 350));
       saveLocalSession(token);
       setSessionEmail(pendingEmail);
-      await submitEntryWithToken(token, pendingPayload);
+      await submitEntryToNetlify(pendingPayload);
       setOtpOpen(false);
     } catch (e: any) {
       setOtpVerified(false);
@@ -381,8 +363,9 @@ const EntryFormPage: React.FC = () => {
       <Navbar />
       <div className="entry-form-page container mt-5">
         <h1 className="text-center mb-4">Giveaway Entry Form</h1>
-        <form name="entry" onSubmit={handleSubmit(onSubmit)}>
+        <form name="entry" method="POST" data-netlify="true" netlify-honeypot="bot-field" onSubmit={handleSubmit(onSubmit)}>
           <input type="hidden" name="form-name" value="entry" />
+          <input type="hidden" name="bot-field" value="" />
           <div className="row">
             {/* Personal Information Section */}
             <div className="col-md-6 mb-4">
