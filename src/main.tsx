@@ -38,6 +38,26 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { ToastProvider } from './components/Toast';
 
+// Opportunistically preconnect to Supabase if configured
+(() => {
+  try {
+    const env = (import.meta as any).env || {};
+    const url: string = env.VITE_SUPABASE_URL || env.SUPABASE_URL || env.SUPABASE_DATABASE_URL || '';
+    if (url) {
+      const u = new URL(url);
+      const mk = (rel: string) => {
+        const link = document.createElement('link');
+        link.rel = rel;
+        link.href = u.origin;
+        if (rel === 'preconnect') link.crossOrigin = '';
+        document.head.appendChild(link);
+      };
+      mk('preconnect');
+      mk('dns-prefetch');
+    }
+  } catch {}
+})();
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

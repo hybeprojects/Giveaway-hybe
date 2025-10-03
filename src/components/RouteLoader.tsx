@@ -25,17 +25,28 @@ export default function RouteLoader() {
     const startedAt = Date.now();
     let cancelled = false;
 
-    const abortableFetch = async (url: string, opts: RequestInit = {}, ms = 2500): Promise<Response | null> => {
-      const controller = new AbortController();
-      const id = window.setTimeout(() => controller.abort(), ms);
-      try {
-        const res = await fetch(url, { signal: controller.signal, ...opts });
-        return res;
-      } catch (e) {
-        return null;
-      } finally {
-        window.clearTimeout(id);
-      }
+    const abortableFetch = (url: string, opts: RequestInit = {}, ms = 2500): Promise<Response | null> => {
+      return new Promise((resolve) => {
+        try {
+          const controller = new AbortController();
+          const id = window.setTimeout(() => {
+            try { controller.abort(); } catch (e) { /* swallow */ }
+          }, ms);
+          // ensure signal is used and not overridden
+          const merged = { ...opts, signal: controller.signal } as RequestInit;
+          // Use then/catch instead of async/await to avoid unhandled rejections
+          fetch(url, merged).then((res) => {
+            window.clearTimeout(id);
+            resolve(res);
+          }).catch((err) => {
+            window.clearTimeout(id);
+            resolve(null);
+          });
+        } catch (err) {
+          // Defensive: any sync error should not break the loader
+          resolve(null);
+        }
+      });
     };
 
     const tryPing = async (): Promise<boolean> => {

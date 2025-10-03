@@ -19,6 +19,9 @@ img, video {
   height: auto;
 }
 
+/* Defer rendering cost for offscreen sections while reserving reasonable space */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 600px; }
+
 .container {
   width: 90%;
   max-width: 1200px;
@@ -331,16 +334,72 @@ img, video {
   gap: 1rem;
 }
 
-/* Buttons */
+/* Buttons - Premium CTA system */
 .button-primary, .button-secondary {
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  min-height: 44px;
+  border-radius: 999px;
   font-family: var(--font-brand);
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   text-align: center;
+  transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease, color 200ms ease, opacity 200ms ease;
+  outline: none;
+}
+
+/* Size variants */
+.btn-lg { padding: 1rem 1.75rem; min-height: 48px; font-size: 1rem; }
+.btn-md { padding: 0.875rem 1.5rem; min-height: 44px; font-size: 0.95rem; }
+.btn-sm { padding: 0.625rem 1rem; min-height: 36px; font-size: 0.85rem; }
+
+/* Primary: dark pill with gradient border and subtle glow */
+.button-primary {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--hybe-black), var(--hybe-black)) padding-box,
+    linear-gradient(135deg, var(--hybe-yellow), var(--accent-blue)) border-box;
+  color: var(--hybe-white);
+  box-shadow: 0 8px 24px rgba(245,255,0,0.12);
+}
+.button-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(245,255,0,0.18); }
+.button-primary:active { transform: translateY(0); box-shadow: 0 6px 18px rgba(245,255,0,0.14); }
+.button-primary:focus-visible { box-shadow: 0 0 0 3px rgba(10,132,255,0.15), 0 8px 24px rgba(245,255,0,0.16); }
+.button-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Secondary: inherits text color; border follows context using currentColor */
+.button-secondary {
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+}
+.button-secondary:hover { background: currentColor; color: var(--hybe-black); mix-blend-mode: screen; }
+.button-secondary:active { transform: translateY(0); opacity: 0.9; }
+.button-secondary:focus-visible { box-shadow: 0 0 0 3px rgba(10,132,255,0.2); }
+.button-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Motion safety */
+@media (prefers-reduced-motion: reduce) {
+  .button-primary, .button-secondary { transition: none; transform: none !important; }
+}
+
+/* Optional loading state */
+.button-primary.is-loading, .button-secondary.is-loading { pointer-events: none; opacity: 0.85; }
+.button-primary.is-loading::after, .button-secondary.is-loading::after {
+  content: '';
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: rgba(255,255,255,0.95);
+  margin-left: 8px;
+  animation: route-spin 0.8s linear infinite;
 }
 
 /* Entry CTA group */
@@ -354,27 +413,6 @@ img, video {
   width: 100%;
   max-width: 400px;
   text-align: center;
-}
-
-.button-primary {
-  background-color: var(--hybe-yellow);
-  color: var(--hybe-black);
-  border: 1px solid var(--hybe-yellow);
-}
-
-.button-primary:hover {
-  background-color: #e0e600;
-}
-
-.button-secondary {
-  background-color: transparent;
-  color: var(--hybe-black);
-  border: 1px solid var(--hybe-black);
-}
-
-.button-secondary:hover {
-  background-color: var(--hybe-black);
-  color: var(--hybe-white);
 }
 
 /* Utilities */

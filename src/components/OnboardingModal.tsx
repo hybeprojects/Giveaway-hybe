@@ -45,7 +45,7 @@ export default function OnboardingModal({ isOpen, onClose }: Props) {
             All entries are tracked and audited to protect every participant. This initiative was created to strengthen the bond between BTS and their fans worldwide.
           </p>
           <div className="button-row mt-14">
-            <button type="button" className="button-primary" onClick={onClose}>Continue</button>
+            <button type="button" className="button-primary btn-md" onClick={onClose}>Continue</button>
           </div>
         </div>
       </div>
