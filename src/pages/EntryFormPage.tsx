@@ -672,27 +672,52 @@ const EntryFormPage: React.FC = () => {
         </form>
       </div>
 
+      {/* Preview Modal */}
+      {previewOpen && (
+        <div className="modal-overlay" onClick={() => !isConfirming && setPreviewOpen(false)}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="preview-heading" onClick={e => e.stopPropagation()}>
+            <p className="modal-title-label">Review your details</p>
+            <h2 id="preview-heading">Confirm your submission</h2>
+            <div style={{ maxHeight: 260, overflowY: 'auto', marginBottom: 12 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {pendingPayload && Object.entries(pendingPayload).filter(([k,v]) => String(v||'') !== '').map(([k, v]) => (
+                  <li key={k} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid #eee' }}>
+                    <strong style={{ minWidth: 180, textTransform: 'capitalize' }}>{k.replace(/[A-Z]/g, m => ' ' + m).replace(/^./, s => s.toUpperCase())}</strong>
+                    <span style={{ color: '#333' }}>{String(v)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {previewError && <div className="alert alert-danger" role="alert">{previewError}</div>}
+            <div className="button-row">
+              <button type="button" className={`button-primary ${isConfirming ? 'is-loading' : ''}`} onClick={confirmAndSendOtp} disabled={isConfirming}>Confirm</button>
+              <button type="button" className="button-secondary" onClick={() => setPreviewOpen(false)} disabled={isConfirming}>Back</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* OTP Modal */}
       {otpOpen && (
         <div className="modal-overlay" onClick={closeOtp}>
           <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="otp-heading" onClick={e => e.stopPropagation()}>
             <p className="modal-title-label">Email verification</p>
             <h2 id="otp-heading">Confirm your email</h2>
-            <p>We sent a 6‑digit code to <strong>{pendingEmail}</strong>. Enter it below to verify and submit your entry.</p>
+            <p>Please enter the 6-digit OTP sent to your email: <strong>{pendingEmail}</strong>.</p>
             <div className="otp-input-row">
               <input
                 id="otp-code"
-                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''}`}
+                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''} ${otpShake ? 'shake' : ''}`}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                onChange={(e) => setOtpCode(e.target.value.replace(/[^\\d]/g, '').slice(0, 6))}
                 onPaste={(e) => {
                   e.preventDefault();
                   const text = (e.clipboardData || (window as any).clipboardData).getData('text');
-                  const digits = String(text || '').replace(/[^\d]/g, '').slice(0, 6);
+                  const digits = String(text || '').replace(/[^\\d]/g, '').slice(0, 6);
                   if (digits) setOtpCode(digits);
                 }}
                 inputMode="numeric"
-                pattern="\\d*"
+                pattern="\\\\d*"
                 maxLength={6}
                 aria-invalid={!!otpError}
                 aria-describedby={otpError ? 'otp-code-error' : undefined}
