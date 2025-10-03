@@ -1,13 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from '../functions/verify-otp.js';
-import supabase from '../functions/utils/supabase.js';
+import { supabaseAnon as supabase } from '../functions/utils/supabase.js';
 
 // Mock the entire supabase client module
 vi.mock('../functions/utils/supabase.js', () => {
   return {
-    default: {
+    supabaseAnon: {
       auth: {
         verifyOtp: vi.fn(),
+      },
+    },
+    supabaseAdmin: {
+      auth: {
+        getUser: vi.fn(),
+      },
+    },
+    default: {
+      auth: {
+        getUser: vi.fn(),
       },
     },
   };
