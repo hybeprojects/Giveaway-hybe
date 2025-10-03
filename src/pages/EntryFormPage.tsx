@@ -6,7 +6,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
-import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession } from '../utils/auth';
+import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession, issueFormNonce } from '../utils/auth';
 
 // HYBE hierarchy: Branch -> Group -> Artists
 const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
@@ -287,7 +287,6 @@ const EntryFormPage: React.FC = () => {
       favoriteArtist: data.favoriteArtist || '',
       consentTerms: data.consentTerms ? 'true' : 'false',
       consentPrivacy: data.consentPrivacy ? 'true' : 'false',
-      supabase_token: localStorage.getItem('local_session') || '',
     };
 
     const hasSession = !!localStorage.getItem('local_session');
@@ -307,7 +306,13 @@ const EntryFormPage: React.FC = () => {
       return;
     }
 
-    await submitEntryToNetlify(payload);
+    try {
+      const nonce = await issueFormNonce();
+      const ts = Date.now().toString();
+      await submitEntryToNetlify({ ...payload, supabase_nonce: nonce, ts });
+    } catch (e: any) {
+      setSubmissionError(e?.message || 'Failed to prepare secure submission');
+    }
   };
 
   useEffect(() => {
@@ -329,7 +334,9 @@ const EntryFormPage: React.FC = () => {
       await new Promise(r => setTimeout(r, 350));
       saveLocalSession(token);
       setSessionEmail(pendingEmail);
-      await submitEntryToNetlify(pendingPayload);
+      const nonce = await issueFormNonce();
+      const ts = Date.now().toString();
+      await submitEntryToNetlify({ ...pendingPayload, supabase_nonce: nonce, ts });
       setOtpOpen(false);
     } catch (e: any) {
       setOtpVerified(false);
