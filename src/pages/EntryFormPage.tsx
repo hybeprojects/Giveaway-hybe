@@ -176,16 +176,7 @@ const EntryFormPage: React.FC = () => {
                   try {
                     return JSON.parse(xhr.responseText || 'null');
                   } catch (err) {
-                    // Propagate parse error
                     throw err;
-                  }
-                },
-                // minimal headers support
-                headers: {
-                  get: (name: string) => {
-                    const raw = xhr.getAllResponseHeaders();
-                    const match = new RegExp('^' + name + ': *(.*)$', 'im').exec(raw);
-                    return match ? match[1] : null;
                   }
                 }
               };
@@ -197,7 +188,7 @@ const EntryFormPage: React.FC = () => {
 
             // Send body for methods like POST
             if (init && init.body != null) {
-              xhr.send(init.body as Document | BodyInit | null);
+              xhr.send(init.body as any);
             } else {
               xhr.send();
             }
