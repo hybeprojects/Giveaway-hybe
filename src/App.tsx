@@ -42,7 +42,6 @@ function Landing() {
       import('./sections/LiveUpdates');
       import('./sections/Footer');
       import('./pages/EntryFormPage');
-      import('./pages/EntrySuccessPage');
     });
     return () => cancel(id);
   }, []);
