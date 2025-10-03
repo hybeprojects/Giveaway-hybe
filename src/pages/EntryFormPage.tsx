@@ -329,7 +329,7 @@ const EntryFormPage: React.FC = () => {
         setSubmissionError('Form submit failed. Please try again.');
         return;
       }
-      navigate('/entry/success');
+      window.location.href = '/success.html';
     } catch (err) {
       console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
