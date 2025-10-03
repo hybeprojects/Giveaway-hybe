@@ -134,20 +134,31 @@ const EntryFormPage: React.FC = () => {
     }
   }, [setValue]);
 
+  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.)
+  async function safeFetch(input: RequestInfo, init?: RequestInit) {
+    try {
+      const res = await (fetch as any)(input, init);
+      return res;
+    } catch (e) {
+      console.warn('[safeFetch] network error or fetch wrapper failure for', input, e);
+      return null as unknown as Response;
+    }
+  }
+
   // Fetch global country list from REST Countries API for robust worldwide support
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('https://restcountries.com/v3.1/all?fields=cca2,name');
-        if (!res.ok) throw new Error('Failed to load countries');
+        const res = await safeFetch('https://restcountries.com/v3.1/all?fields=cca2,name');
+        if (!res || !res.ok) throw new Error('Failed to load countries');
         const data: { cca2: string; name: { common: string } }[] = await res.json();
         const opts = data
           .map(d => ({ code: d.cca2.toUpperCase(), name: d.name.common }))
           .filter(d => d.code.length === 2 && d.name)
           .sort((a, b) => a.name.localeCompare(b.name));
         if (!cancelled) setCountryOptions(opts);
-      } catch {
+      } catch (err) {
         if (!cancelled) setCountryOptions(fallbackCountries);
       }
     })();
@@ -159,15 +170,15 @@ const EntryFormPage: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (!res.ok) throw new Error('Failed to geo-detect');
+        const res = await safeFetch('https://ipapi.co/json/');
+        if (!res || !res.ok) throw new Error('Failed to geo-detect');
         const info: any = await res.json();
         const code: string | undefined = (info && (info.country_code || info.country)) ? String(info.country_code || info.country).toUpperCase() : undefined;
         if (!cancelled && code && /^[A-Z]{2}$/.test(code)) {
           setSelectedCountry(code);
           setValue('country', code, { shouldValidate: true, shouldDirty: true });
         }
-      } catch {
+      } catch (err) {
         // Silent fallback: keep defaults
       }
     })();
@@ -246,7 +257,7 @@ const EntryFormPage: React.FC = () => {
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
-      const response = await fetch('/', {
+      const response = await safeFetch('/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
