@@ -19,6 +19,9 @@ img, video {
   height: auto;
 }
 
+/* Defer rendering cost for offscreen sections while reserving reasonable space */
+.cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 600px; }
+
 .container {
   width: 90%;
   max-width: 1200px;
