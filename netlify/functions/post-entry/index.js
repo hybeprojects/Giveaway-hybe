@@ -95,7 +95,6 @@ const handler = async (event) => {
       consent_privacy: !!consent_privacy,
       marketing_opt_in: !!marketing_opt_in,
       favorite_artist: favorite_artist || null,
-      bias_member: bias_member || null,
       fan_since_year: fan_since_year || null,
       favorite_song_album: favorite_song_album || null,
       twitter_handle: twitter_handle || null,

@@ -132,7 +132,12 @@ export default function RouteLoader() {
 
       if (cancelled) return;
       // Keep spinner visible for a short fade-out to avoid flicker
-      hideTimer.current = window.setTimeout(() => setVisible(false), 300);
+      hideTimer.current = window.setTimeout(() => {
+        setVisible(false);
+        try {
+          window.dispatchEvent(new CustomEvent('route-loader-hidden'));
+        } catch {}
+      }, 300);
     })();
 
     // Update prevPath and ensure polling reference (kept for cleanup)
