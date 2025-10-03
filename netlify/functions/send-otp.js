@@ -43,7 +43,7 @@ export const handler = async (event) => {
     }
 
     const origin = event.headers['origin'] || event.headers['referer'] || '';
-    const { subject, text, html } = renderOtpEmail(String(origin), code, OTP_TTL_MINUTES);
+
 
     try {
       await sendEmail(event, { to: email, subject, text, html });
