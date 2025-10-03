@@ -394,7 +394,10 @@ const EntryFormPage: React.FC = () => {
       setOtpOpen(false);
     } catch (e: any) {
       setOtpVerified(false);
-      setOtpError(e?.message || 'Verification failed');
+      const msg = e?.message || 'Please enter the 6-digit OTP sent to your email.';
+      setOtpError(msg);
+      setOtpShake(true);
+      setTimeout(() => setOtpShake(false), 500);
     } finally {
       setIsVerifying(false);
     }
