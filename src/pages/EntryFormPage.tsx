@@ -174,6 +174,21 @@ const EntryFormPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [setValue]);
 
+  // Auto-refresh once when route loader hides to ensure full form responsiveness
+  useEffect(() => {
+    const onHidden = () => {
+      if (sessionStorage.getItem('entry_auto_refreshed')) return;
+      sessionStorage.setItem('entry_auto_refreshed', '1');
+      setTimeout(() => {
+        window.location.reload();
+      }, 0);
+    };
+    window.addEventListener('route-loader-hidden', onHidden);
+    return () => {
+      window.removeEventListener('route-loader-hidden', onHidden);
+    };
+  }, []);
+
   // Keep phone input formatting in sync with the selected address country
   useEffect(() => {
     if (watchedCountry && watchedCountry !== selectedCountry) {
