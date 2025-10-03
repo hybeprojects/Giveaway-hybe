@@ -426,6 +426,25 @@ const EntryFormPage: React.FC = () => {
     setResendIn(0);
   };
 
+  const confirmAndSendOtp = async () => {
+    if (!pendingEmail) return;
+    setIsConfirming(true);
+    setPreviewError(null);
+    try {
+      await requestOtp(pendingEmail, 'login');
+      setPreviewOpen(false);
+      setOtpCode('');
+      setOtpError(null);
+      setOtpVerified(false);
+      setOtpOpen(true);
+      setResendIn(RESEND_COOLDOWN_SECONDS);
+    } catch (e: any) {
+      setPreviewError(e?.message || 'Failed to send code');
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
