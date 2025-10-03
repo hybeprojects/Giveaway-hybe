@@ -53,13 +53,7 @@ export const handler = async (event) => {
       return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Expired token' }) };
     }
 
-    const token = nonceRow.token;
-    const { data: userRes, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !userRes || !userRes.user) {
-      return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
-    }
-
-    const user = userRes.user;
+    const user = { email: nonceRow.email };
 
     // Mark nonce as used and capture submit IP/UA
     const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || event.headers['client-ip'] || '';

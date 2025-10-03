@@ -181,3 +181,15 @@
 .otp-trailing .otp-check { width: 20px; height: 20px; border-radius: 50%; background: #28a745; position: relative; animation: otp-check-pop 220ms ease-out forwards; }
 .otp-trailing .otp-check::after { content: ''; position: absolute; left: 6px; top: 3px; width: 6px; height: 10px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
 @keyframes otp-check-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* Shake animation for invalid OTP */
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.shake { animation: shake 300ms ease-in-out; }
+
+/* Small spacing helper */
+.mt-14 { margin-top: 14px; }

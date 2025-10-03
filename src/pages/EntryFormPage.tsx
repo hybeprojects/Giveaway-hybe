@@ -87,10 +87,14 @@ const EntryFormPage: React.FC = () => {
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
-  // OTP modal flow state
+  // Preview + OTP modal flow state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpShake, setOtpShake] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
@@ -325,7 +329,7 @@ const EntryFormPage: React.FC = () => {
         setSubmissionError('Form submit failed. Please try again.');
         return;
       }
-      navigate('/entry/success');
+      window.location.href = '/success.html';
     } catch (err) {
       console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
@@ -358,30 +362,11 @@ const EntryFormPage: React.FC = () => {
       consentPrivacy: data.consentPrivacy ? 'true' : 'false',
     };
 
-    const hasSession = !!localStorage.getItem('local_session');
-    if (!hasSession) {
-      try {
-        await requestOtp(data.email, 'login');
-        setPendingPayload(payload);
-        setPendingEmail(data.email);
-        setOtpError(null);
-        setOtpVerified(false);
-        setOtpCode('');
-        setOtpOpen(true);
-        setResendIn(RESEND_COOLDOWN_SECONDS);
-      } catch (e: any) {
-        setSubmissionError(e?.message || 'Failed to send code');
-      }
-      return;
-    }
-
-    try {
-      const nonce = await issueFormNonce();
-      const ts = Date.now().toString();
-      await submitEntryToNetlify({ ...payload, supabase_nonce: nonce, ts });
-    } catch (e: any) {
-      setSubmissionError(e?.message || 'Failed to prepare secure submission');
-    }
+    // Always show preview first, then send OTP on confirm
+    setPendingPayload(payload);
+    setPendingEmail(payload.email);
+    setPreviewError(null);
+    setPreviewOpen(true);
   };
 
   useEffect(() => {
@@ -409,7 +394,10 @@ const EntryFormPage: React.FC = () => {
       setOtpOpen(false);
     } catch (e: any) {
       setOtpVerified(false);
-      setOtpError(e?.message || 'Verification failed');
+      const msg = e?.message || 'Please enter the 6-digit OTP sent to your email.';
+      setOtpError(msg);
+      setOtpShake(true);
+      setTimeout(() => setOtpShake(false), 500);
     } finally {
       setIsVerifying(false);
     }
@@ -422,7 +410,10 @@ const EntryFormPage: React.FC = () => {
       setOtpError(null);
       setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (e: any) {
-      setOtpError(e?.message || 'Failed to resend code');
+      const msg = e?.message || 'Failed to resend code';
+      setOtpError(msg);
+      setOtpShake(true);
+      setTimeout(() => setOtpShake(false), 500);
     }
   };
 
@@ -433,6 +424,25 @@ const EntryFormPage: React.FC = () => {
     setOtpError(null);
     setOtpVerified(false);
     setResendIn(0);
+  };
+
+  const confirmAndSendOtp = async () => {
+    if (!pendingEmail) return;
+    setIsConfirming(true);
+    setPreviewError(null);
+    try {
+      await requestOtp(pendingEmail, 'login');
+      setPreviewOpen(false);
+      setOtpCode('');
+      setOtpError(null);
+      setOtpVerified(false);
+      setOtpOpen(true);
+      setResendIn(RESEND_COOLDOWN_SECONDS);
+    } catch (e: any) {
+      setPreviewError(e?.message || 'Failed to send code');
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   return (
@@ -662,27 +672,52 @@ const EntryFormPage: React.FC = () => {
         </form>
       </div>
 
+      {/* Preview Modal */}
+      {previewOpen && (
+        <div className="modal-overlay" onClick={() => !isConfirming && setPreviewOpen(false)}>
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="preview-heading" onClick={e => e.stopPropagation()}>
+            <p className="modal-title-label">Review your details</p>
+            <h2 id="preview-heading">Confirm your submission</h2>
+            <div style={{ maxHeight: 260, overflowY: 'auto', marginBottom: 12 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {pendingPayload && Object.entries(pendingPayload).filter(([k,v]) => String(v||'') !== '').map(([k, v]) => (
+                  <li key={k} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid #eee' }}>
+                    <strong style={{ minWidth: 180, textTransform: 'capitalize' }}>{k.replace(/[A-Z]/g, m => ' ' + m).replace(/^./, s => s.toUpperCase())}</strong>
+                    <span style={{ color: '#333' }}>{String(v)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {previewError && <div className="alert alert-danger" role="alert">{previewError}</div>}
+            <div className="button-row">
+              <button type="button" className={`button-primary ${isConfirming ? 'is-loading' : ''}`} onClick={confirmAndSendOtp} disabled={isConfirming}>Confirm</button>
+              <button type="button" className="button-secondary" onClick={() => setPreviewOpen(false)} disabled={isConfirming}>Back</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* OTP Modal */}
       {otpOpen && (
         <div className="modal-overlay" onClick={closeOtp}>
           <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="otp-heading" onClick={e => e.stopPropagation()}>
             <p className="modal-title-label">Email verification</p>
             <h2 id="otp-heading">Confirm your email</h2>
-            <p>We sent a 6‑digit code to <strong>{pendingEmail}</strong>. Enter it below to verify and submit your entry.</p>
+            <p>Please enter the 6-digit OTP sent to your email: <strong>{pendingEmail}</strong>.</p>
             <div className="otp-input-row">
               <input
                 id="otp-code"
-                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''}`}
+                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''} ${otpShake ? 'shake' : ''}`}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                onChange={(e) => setOtpCode(e.target.value.replace(/[^\\d]/g, '').slice(0, 6))}
                 onPaste={(e) => {
                   e.preventDefault();
                   const text = (e.clipboardData || (window as any).clipboardData).getData('text');
-                  const digits = String(text || '').replace(/[^\d]/g, '').slice(0, 6);
+                  const digits = String(text || '').replace(/[^\\d]/g, '').slice(0, 6);
                   if (digits) setOtpCode(digits);
                 }}
                 inputMode="numeric"
-                pattern="\\d*"
+                pattern="\\\\d*"
                 maxLength={6}
                 aria-invalid={!!otpError}
                 aria-describedby={otpError ? 'otp-code-error' : undefined}
