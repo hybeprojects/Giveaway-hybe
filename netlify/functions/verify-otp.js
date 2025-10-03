@@ -1,4 +1,4 @@
-import supabase from './utils/supabase.js';
+import { supabaseAnon as supabase } from './utils/supabase.js';
 
 const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
