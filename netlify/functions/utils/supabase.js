@@ -1,24 +1,43 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Prefer standard server environment variable names first, then fallbacks.
+// Resolve Supabase URL
 const supabaseUrl =
   process.env.SUPABASE_URL ||
   process.env.VITE_SUPABASE_URL ||
   process.env.SUPABASE_DATABASE_URL ||
   '';
 
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+// Resolve keys explicitly
+const anonKey =
   process.env.SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
   '';
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error(
-    'Missing Supabase configuration. Please set SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY in your environment.'
-  );
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseUrl) {
+  throw new Error('Missing Supabase configuration. Please set SUPABASE_URL (or VITE_SUPABASE_URL/SUPABASE_DATABASE_URL).');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+// Prefer least-privilege: anon for auth/magic link/OTP, service role for privileged DB ops only
+// Fallbacks exist to avoid hard failures if one key is not present, but a warning is logged.
+const shouldWarnAnonFallback = !anonKey && !!serviceRoleKey;
+const shouldWarnAdminFallback = !serviceRoleKey && !!anonKey;
 
-export default supabase;
+if (shouldWarnAnonFallback) {
+  console.warn('[supabase] Missing SUPABASE_ANON_KEY; using service role key for anon client as a fallback. This is not recommended.');
+}
+if (shouldWarnAdminFallback) {
+  console.warn('[supabase] Missing SUPABASE_SERVICE_ROLE_KEY; using anon key for admin client as a fallback. Some server operations may fail.');
+}
+
+export const supabaseAnon = createClient(supabaseUrl, anonKey || serviceRoleKey, {
+  auth: { persistSession: false },
+});
+
+export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey || anonKey, {
+  auth: { persistSession: false },
+});
+
+// Back-compat: default export remains the admin client for existing imports
+export default supabaseAdmin;
