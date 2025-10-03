@@ -1,4 +1,4 @@
-import supabase from './utils/supabase.js';
+import { supabaseAnon as supabase } from './utils/supabase.js';
 
 // IMPORTANT: Supabase email template customization
 // This function relies on the email templates configured in your Supabase project dashboard.
