@@ -30,6 +30,24 @@ function Landing() {
     }
   }, [location]);
 
+  // Warm up lazy chunks during idle time for snappier interactions
+  useEffect(() => {
+    const w = window as any;
+    const idle = w.requestIdleCallback || ((cb: any) => setTimeout(cb, 300));
+    const cancel = w.cancelIdleCallback || clearTimeout;
+    const id = idle(() => {
+      import('./sections/Prizes');
+      import('./sections/VIPExperience');
+      import('./sections/Entry');
+      import('./sections/Trust');
+      import('./sections/LiveUpdates');
+      import('./sections/Footer');
+      import('./pages/EntryFormPage');
+      import('./pages/EntrySuccessPage');
+    });
+    return () => cancel(id);
+  }, []);
+
   return (
     <>
       <OnboardingModal isOpen={showOnboard} onClose={() => setShowOnboard(false)} />
