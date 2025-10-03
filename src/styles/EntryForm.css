@@ -172,24 +172,22 @@
   cursor: not-allowed;
 }
 
-/* OTP modal input row */
-.otp-input-row { position: relative; max-width: 320px; margin: 0 auto; }
-.otp-input-row .form-control { padding-right: 2.5rem; text-align: center; letter-spacing: 0.3em; transition: box-shadow 180ms ease, border-color 180ms ease; }
-.otp-input-row .form-control.otp-success { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40,167,69,0.25); }
-.otp-trailing { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; }
-.otp-trailing .loading-spinner { width: 20px; height: 20px; border-width: 2px; border-color: rgba(0,0,0,0.15); border-top-color: #000; }
-.otp-trailing .otp-check { width: 20px; height: 20px; border-radius: 50%; background: #28a745; position: relative; animation: otp-check-pop 220ms ease-out forwards; }
-.otp-trailing .otp-check::after { content: ''; position: absolute; left: 6px; top: 3px; width: 6px; height: 10px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
-@keyframes otp-check-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-
-/* Shake animation for invalid OTP */
-@keyframes shake {
-  10%, 90% { transform: translateX(-1px); }
-  20%, 80% { transform: translateX(2px); }
-  30%, 50%, 70% { transform: translateX(-4px); }
-  40%, 60% { transform: translateX(4px); }
+/* OTP segmented inputs */
+.otp-grid { position: relative; display: flex; gap: 10px; justify-content: center; align-items: center; }
+.otp-cell { position: relative; }
+.otp-cell + .otp-cell:nth-child(4) { margin-left: 12px; }
+.otp-input {
+  width: 52px; height: 56px; text-align: center; font-size: 24px; font-weight: 600;
+  border: 1px solid #ced4da; border-radius: 8px; background: #fff; color: #212529;
+  outline: none; caret-color: transparent;
 }
-.shake { animation: shake 300ms ease-in-out; }
+.otp-input:focus { border-color: #8a2be2; box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.25); }
+.otp-cell.is-error .otp-input { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,0.25); }
+.otp-cell.is-success .otp-input { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40,167,69,0.25); }
+.otp-inline-status { position: absolute; right: -36px; display: flex; align-items: center; justify-content: center; }
+.otp-inline-status .loading-spinner { width: 20px; height: 20px; border-width: 2px; border-color: rgba(0,0,0,0.15); border-top-color: #000; }
+.otp-check { width: 20px; height: 20px; border-radius: 50%; background: #28a745; position: relative; }
+.otp-check::after { content: ''; position: absolute; left: 6px; top: 3px; width: 6px; height: 10px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
 
 /* Small spacing helper */
 .mt-14 { margin-top: 14px; }
