@@ -12,12 +12,12 @@ export const handler = async (event) => {
       return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
     }
     const token = authz.slice('Bearer '.length);
-    const { data: userRes, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !userRes || !userRes.user) {
+    const { verifySessionToken } = await import('./utils/jwt.js');
+    const v = verifySessionToken(token);
+    if (!v.ok || !v.email) {
       return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
     }
-
-    const user = userRes.user;
+    const user = { email: v.email };
     const nonce = crypto.randomUUID();
     const now = new Date();
     const expires = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
