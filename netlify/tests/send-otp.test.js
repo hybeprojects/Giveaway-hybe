@@ -1,13 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from '../functions/send-otp.js';
-import supabase from '../functions/utils/supabase.js';
+import { supabaseAnon as supabase } from '../functions/utils/supabase.js';
 
 // Mock the entire supabase client module
 vi.mock('../functions/utils/supabase.js', () => {
   return {
-    default: {
+    supabaseAnon: {
       auth: {
         signInWithOtp: vi.fn(),
+      },
+    },
+    supabaseAdmin: {
+      auth: {
+        getUser: vi.fn(),
+      },
+    },
+    default: {
+      auth: {
+        getUser: vi.fn(),
       },
     },
   };
@@ -83,7 +93,7 @@ describe('send-otp handler', () => {
     const response = await handler(event);
 
     expect(response.statusCode).toBe(404);
-    expect(JSON.parse(response.body).error).toBe('Email not found. Please sign up first.');
+    expect(JSON.parse(response.body).error).toBe('Email not found.');
   });
 
   it('should return a generic error for other Supabase errors', async () => {
