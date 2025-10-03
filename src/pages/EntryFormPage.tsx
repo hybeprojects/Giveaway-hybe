@@ -287,6 +287,7 @@ const EntryFormPage: React.FC = () => {
       favoriteArtist: data.favoriteArtist || '',
       consentTerms: data.consentTerms ? 'true' : 'false',
       consentPrivacy: data.consentPrivacy ? 'true' : 'false',
+      supabase_token: localStorage.getItem('local_session') || '',
     };
 
     const hasSession = !!localStorage.getItem('local_session');
