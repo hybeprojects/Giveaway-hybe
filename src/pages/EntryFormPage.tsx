@@ -87,10 +87,14 @@ const EntryFormPage: React.FC = () => {
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
-  // OTP modal flow state
+  // Preview + OTP modal flow state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpShake, setOtpShake] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
