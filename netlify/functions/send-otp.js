@@ -1,6 +1,6 @@
 import supabase from './utils/supabase.js';
 import { CORS_HEADERS, preflight } from './utils/cors.js';
-import { renderEmail, renderOtpEmail, sendEmail, classifyEmailError } from './utils/email.js';
+import { renderOtpEmail, sendEmail, classifyEmailError } from './utils/email.js';
 
 const OTP_TTL_MINUTES = 10;
 
