@@ -362,30 +362,11 @@ const EntryFormPage: React.FC = () => {
       consentPrivacy: data.consentPrivacy ? 'true' : 'false',
     };
 
-    const hasSession = !!localStorage.getItem('local_session');
-    if (!hasSession) {
-      try {
-        await requestOtp(data.email, 'login');
-        setPendingPayload(payload);
-        setPendingEmail(data.email);
-        setOtpError(null);
-        setOtpVerified(false);
-        setOtpCode('');
-        setOtpOpen(true);
-        setResendIn(RESEND_COOLDOWN_SECONDS);
-      } catch (e: any) {
-        setSubmissionError(e?.message || 'Failed to send code');
-      }
-      return;
-    }
-
-    try {
-      const nonce = await issueFormNonce();
-      const ts = Date.now().toString();
-      await submitEntryToNetlify({ ...payload, supabase_nonce: nonce, ts });
-    } catch (e: any) {
-      setSubmissionError(e?.message || 'Failed to prepare secure submission');
-    }
+    // Always show preview first, then send OTP on confirm
+    setPendingPayload(payload);
+    setPendingEmail(payload.email);
+    setPreviewError(null);
+    setPreviewOpen(true);
   };
 
   useEffect(() => {
