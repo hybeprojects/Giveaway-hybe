@@ -597,7 +597,7 @@ const EntryFormPage: React.FC = () => {
                 This official HYBE initiative celebrates our artists and engages with our global fan community. The selection process is random and monitored for fairness.
               </p>
             </div>
-            <button type="submit" className="button-primary" disabled={isSubmitting}>
+            <button type="submit" className="button-primary btn-lg" disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit Entry'}
             </button>
           </div>
