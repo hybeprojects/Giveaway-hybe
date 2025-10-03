@@ -43,9 +43,7 @@ export const handler = async (event) => {
     }
 
     const origin = event.headers['origin'] || event.headers['referer'] || '';
-    const subject = 'Confirm Your Giveaway Entry';
-    const text = `Your one-time password is: ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-    const html = renderOtpEmail({ code, ttlMinutes: OTP_TTL_MINUTES, origin });
+
 
     try {
       await sendEmail(event, { to: email, subject, text, html });

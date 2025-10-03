@@ -51,33 +51,7 @@ export function renderEmail(origin, heading, innerHtml) {
 </body>
 </html>`;
 }
-
-export function renderOtpEmail(vars) {
-  try {
-    const fileUrl = new URL('../templates/otp.html', import.meta.url);
-    const filePath = fileURLToPath(fileUrl);
-    let tpl = fs.readFileSync(filePath, 'utf8');
-    const replacements = [
-      ['{{ .Token }}', vars.code],
-      ['{{.Token}}', vars.code],
-      ['{{code}}', vars.code],
-      ['{{ ttl }}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
-      ['{{ttl}}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
-      ['{{ origin }}', String(vars.origin || '')],
-      ['{{origin}}', String(vars.origin || '')],
-      ['{{ email }}', String(vars.email || '')],
-      ['{{email}}', String(vars.email || '')],
-      ['{{ heading }}', String(vars.heading || 'Verify your email')],
-      ['{{heading}}', String(vars.heading || 'Verify your email')],
-    ];
-    for (const [k, v] of replacements) tpl = tpl.split(k).join(v);
-    return tpl;
-  } catch (e) {
-    const ttl = Number(vars.ttl ?? vars.ttlMinutes ?? 10);
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
   <title>Confirm Your Giveaway Entry</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
