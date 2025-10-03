@@ -410,7 +410,10 @@ const EntryFormPage: React.FC = () => {
       setOtpError(null);
       setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (e: any) {
-      setOtpError(e?.message || 'Failed to resend code');
+      const msg = e?.message || 'Failed to resend code';
+      setOtpError(msg);
+      setOtpShake(true);
+      setTimeout(() => setOtpShake(false), 500);
     }
   };
 
