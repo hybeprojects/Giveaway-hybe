@@ -175,7 +175,7 @@
 /* OTP segmented inputs */
 .otp-grid { position: relative; display: flex; gap: 10px; justify-content: center; align-items: center; }
 .otp-cell { position: relative; }
-.otp-cell + .otp-cell:nth-child(4) { margin-left: 12px; }
+.otp-cell:nth-child(4) { margin-left: 12px; }
 .otp-input {
   width: 52px; height: 56px; text-align: center; font-size: 24px; font-weight: 600;
   border: 1px solid #ced4da; border-radius: 8px; background: #fff; color: #212529;
