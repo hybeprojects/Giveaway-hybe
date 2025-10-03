@@ -461,6 +461,8 @@ img, video {
   z-index: 1000;
   backdrop-filter: blur(4px);
 }
+/* Bottom sheet alignment helper */
+.modal-overlay.bottom { align-items: flex-end; }
 
 /* Confetti canvas above modal */
 .confetti-layer {
@@ -515,6 +517,17 @@ img, video {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--hybe-black);
 }
+/* OTP bottom sheet on small screens */
+@media (max-width: 640px) {
+  .modal-content.otp-modal {
+    width: 100%;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+/* Sticky action row for mobile */
+.sticky-action-row { position: sticky; bottom: 0; background: var(--hybe-white); padding-top: 12px; border-top: 1px solid #eee; }
 .modal-content h2 { color: var(--hybe-black); margin: 0.25rem 0 0.5rem; }
 .modal-title-label { font-size: 0.8rem; letter-spacing: 0.08em; color: #666; text-transform: uppercase; margin: 0; }
 

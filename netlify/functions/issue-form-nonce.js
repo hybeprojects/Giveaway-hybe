@@ -1,5 +1,6 @@
 import supabase from './utils/supabase.js';
 import crypto from 'crypto';
+import supabase from './utils/supabase.js';
 
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
