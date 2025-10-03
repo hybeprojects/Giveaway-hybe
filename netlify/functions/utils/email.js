@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 export function validateEmailEnvOrThrow() {
   const host = process.env.SMTP_HOST || '';
