@@ -134,14 +134,67 @@ const EntryFormPage: React.FC = () => {
     }
   }, [setValue]);
 
-  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.)
+  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.).
+  // Falls back to XMLHttpRequest when fetch throws synchronously (some wrappers may do this).
   async function safeFetch(input: RequestInfo, init?: RequestInit) {
     try {
       const res = await (fetch as any)(input, init);
       return res;
     } catch (e) {
-      console.warn('[safeFetch] network error or fetch wrapper failure for', input, e);
-      return null as unknown as Response;
+      console.warn('[safeFetch] fetch threw; falling back to XHR for', input, e);
+      // Try XHR fallback to avoid wrapper issues. Return a Response-like object with json/text helpers.
+      return await new Promise<Response | null>((resolve) => {
+        try {
+          const url = typeof input === 'string' ? input : (input as Request).url;
+          const method = (init && init.method) || 'GET';
+          const xhr = new XMLHttpRequest();
+          xhr.open(method, url, true);
+
+          // Set headers
+          if (init && init.headers) {
+            const headers = init.headers as Record<string, string> | Headers;
+            if (headers instanceof Headers) {
+              headers.forEach((v, k) => xhr.setRequestHeader(k, v));
+            } else {
+              Object.keys(headers).forEach((k) => {
+                // @ts-ignore
+                xhr.setRequestHeader(k, (headers as Record<string, string>)[k]);
+              });
+            }
+          }
+
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+              const status = xhr.status || 0;
+              const ok = status >= 200 && status < 300;
+              const responseText = xhr.responseText === undefined ? '' : xhr.responseText;
+
+              const fakeRes: Partial<Response> = {
+                ok,
+                status,
+                text: () => Promise.resolve(responseText),
+                json: () => {
+                  try {
+                    return Promise.resolve(JSON.parse(responseText || '{}'));
+                  } catch (err) {
+                    return Promise.reject(err);
+                  }
+                },
+              };
+              resolve(fakeRes as Response);
+            }
+          };
+
+          xhr.onerror = function () {
+            resolve(null);
+          };
+
+          const body = init && (init.body as any) ? init.body : null;
+          xhr.send(body);
+        } catch (err) {
+          resolve(null);
+        }
+      });
     }
   }
 
