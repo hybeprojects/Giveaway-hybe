@@ -30,5 +30,5 @@ export default function LazyVisible({ children, rootMargin = '200px 0px', once =
     return () => { if (observer) observer.disconnect(); };
   }, [rootMargin, once, visible]);
 
-  return <div ref={ref}>{visible ? children : null}</div>;
+  return <div ref={ref} className="cv-auto">{visible ? children : null}</div>;
 }
