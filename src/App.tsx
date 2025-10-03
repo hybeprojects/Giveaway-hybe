@@ -14,7 +14,6 @@ const Trust = lazy(() => import('./sections/Trust'));
 const LiveUpdates = lazy(() => import('./sections/LiveUpdates'));
 const Footer = lazy(() => import('./sections/Footer'));
 const EntryFormPage = lazy(() => import('./pages/EntryFormPage'));
-const EntrySuccessPage = lazy(() => import('./pages/EntrySuccessPage'));
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
