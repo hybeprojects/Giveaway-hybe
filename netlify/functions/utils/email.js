@@ -52,6 +52,33 @@ export function renderEmail(origin, heading, innerHtml) {
 </html>`;
 }
 
+export function renderOtpEmail(vars) {
+  try {
+    const fileUrl = new URL('../templates/otp.html', import.meta.url);
+    const filePath = fileURLToPath(fileUrl);
+    let tpl = fs.readFileSync(filePath, 'utf8');
+    const replacements = [
+      ['{{ .Token }}', vars.code],
+      ['{{.Token}}', vars.code],
+      ['{{code}}', vars.code],
+      ['{{ ttl }}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
+      ['{{ttl}}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
+      ['{{ origin }}', String(vars.origin || '')],
+      ['{{origin}}', String(vars.origin || '')],
+      ['{{ email }}', String(vars.email || '')],
+      ['{{email}}', String(vars.email || '')],
+      ['{{ heading }}', String(vars.heading || 'Verify your email')],
+      ['{{heading}}', String(vars.heading || 'Verify your email')],
+    ];
+    for (const [k, v] of replacements) tpl = tpl.split(k).join(v);
+    return tpl;
+  } catch (e) {
+    const heading = vars.heading || 'Verify your email';
+    const ttl = Number(vars.ttl ?? vars.ttlMinutes ?? 10);
+    return renderEmail(vars.origin || '', heading, `<p>Use the code below to verify your email:</p><div class="code">${vars.code}</div><p class="muted">This code expires in ${ttl} minutes.</p>`);
+  }
+}
+
 export async function sendEmail(event, { to, subject, text, html }) {
   const cfg = validateEmailEnvOrThrow();
   const transporter = nodemailer.createTransport({
