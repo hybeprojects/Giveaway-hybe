@@ -49,6 +49,16 @@ export function renderEmail(origin, heading, innerHtml) {
 </html>`;
 }
 
+export function renderOtpEmail(origin, code, ttlMinutes = 10) {
+  const safeOrigin = String(origin || '');
+  const safeCode = String(code || '');
+  const minutes = Number.isFinite(ttlMinutes) && ttlMinutes > 0 ? Math.floor(ttlMinutes) : 10;
+  const subject = 'Your verification code';
+  const text = `Your one-time password is: ${safeCode}. It expires in ${minutes} minutes.`;
+  const html = renderEmail(safeOrigin, 'Verify your email', `<p>Use the code below to verify your email:</p><div class="code">${safeCode}</div><p class="muted">This code expires in ${minutes} minutes.</p>`);
+  return { subject, text, html };
+}
+
 export async function sendEmail(event, { to, subject, text, html }) {
   const cfg = validateEmailEnvOrThrow();
   const transporter = nodemailer.createTransport({
