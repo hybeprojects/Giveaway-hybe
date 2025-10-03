@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 export function validateEmailEnvOrThrow() {
   const host = process.env.SMTP_HOST || '';
@@ -47,6 +50,67 @@ export function renderEmail(origin, heading, innerHtml) {
   </div>
 </body>
 </html>`;
+}
+
+export function renderOtpEmail(vars) {
+  try {
+    const fileUrl = new URL('../templates/otp.html', import.meta.url);
+    const filePath = fileURLToPath(fileUrl);
+    let tpl = fs.readFileSync(filePath, 'utf8');
+    const replacements = [
+      ['{{ .Token }}', vars.code],
+      ['{{.Token}}', vars.code],
+      ['{{code}}', vars.code],
+      ['{{ ttl }}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
+      ['{{ttl}}', String(vars.ttl ?? vars.ttlMinutes ?? '')],
+      ['{{ origin }}', String(vars.origin || '')],
+      ['{{origin}}', String(vars.origin || '')],
+      ['{{ email }}', String(vars.email || '')],
+      ['{{email}}', String(vars.email || '')],
+      ['{{ heading }}', String(vars.heading || 'Verify your email')],
+      ['{{heading}}', String(vars.heading || 'Verify your email')],
+    ];
+    for (const [k, v] of replacements) tpl = tpl.split(k).join(v);
+    return tpl;
+  } catch (e) {
+    const ttl = Number(vars.ttl ?? vars.ttlMinutes ?? 10);
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirm Your Giveaway Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f9; font-family:Arial, Helvetica, sans-serif; color:#111111;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; mso-hide:all;">
+    Use this code to complete your HYBE Giveaway signup. Expires in ${ttl} minutes.
+  </div>
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width:600px; margin:20px auto; background:#ffffff; border:1px solid #e9e9e9; border-radius:12px;">
+    <tr>
+      <td style="padding:20px; text-align:center; border-bottom:1px solid #e9e9e9;">
+        <img src="https://res.cloudinary.com/dgqhyz67g/image/upload/0f22d319-d299-465c-af1a-c5261c935f9a_removalai_preview_hzdvg2.png" alt="HYBE Logo" width="120" style="display:block; margin:0 auto;">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:28px 24px; text-align:center; color:#444444;">
+        <h2 style="font-size:20px; margin:0 0 16px; font-weight:bold; color:#111111;">Confirm Your Giveaway Entry</h2>
+        <p style="font-size:15px; line-height:1.6; margin:0 0 20px;">Welcome to <strong>HYBE MEGA GIVEAWAYS 🎉</strong>! To complete your entry, please use the one-time password (OTP) below:</p>
+        <div style="display:inline-block; padding:16px 28px; background:#f7f7f7; border:1px solid #cccccc; border-radius:6px; font-size:28px; font-weight:bold; letter-spacing:6px; color:#111111; margin:20px 0;">${vars.code}</div>
+        <p style="font-size:15px; line-height:1.6; margin:20px 0 10px;">This code is valid for <strong>${ttl} minutes</strong>. Enter it on the verification screen to activate your account.</p>
+        <p style="font-size:14px; line-height:1.6; margin:0 0 20px;">If you did not sign up, you can safely ignore this email.</p>
+        <p style="font-size:14px; font-style:italic; margin:0;">– HYBE MANAGEMENT</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#fafafa; border-top:1px solid #e9e9e9; padding:14px 20px; text-align:center; font-size:11px; color:#888888; line-height:1.5;">
+        <p style="margin:0;">© HYBE Corporation. All rights reserved.</p>
+        <p style="margin:5px 0 0;">Need help? Contact <a href="mailto:support@hybe.corp" style="color:#555555; text-decoration:none;">support@hybe.corp</a></p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+  }
 }
 
 export async function sendEmail(event, { to, subject, text, html }) {

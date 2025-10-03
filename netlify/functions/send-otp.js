@@ -1,6 +1,6 @@
 import supabase from './utils/supabase.js';
 import { CORS_HEADERS, preflight } from './utils/cors.js';
-import { renderEmail, sendEmail, classifyEmailError } from './utils/email.js';
+import { renderOtpEmail, sendEmail, classifyEmailError } from './utils/email.js';
 
 const OTP_TTL_MINUTES = 10;
 
@@ -43,9 +43,9 @@ export const handler = async (event) => {
     }
 
     const origin = event.headers['origin'] || event.headers['referer'] || '';
-    const subject = 'Your verification code';
+    const subject = 'Confirm Your Giveaway Entry';
     const text = `Your one-time password is: ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-    const html = renderEmail(String(origin), 'Verify your email', `<p>Use the code below to verify your email:</p><div class="code">${code}</div><p class="muted">This code expires in ${OTP_TTL_MINUTES} minutes.</p>`);
+    const html = renderOtpEmail({ code, ttlMinutes: OTP_TTL_MINUTES, origin });
 
     try {
       await sendEmail(event, { to: email, subject, text, html });
