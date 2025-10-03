@@ -1,4 +1,5 @@
 import { supabaseAnon as supabase } from './utils/supabase.js';
+import { CORS_HEADERS, preflight } from './utils/cors.js';
 
 // IMPORTANT: Supabase email template customization
 // This function relies on the email templates configured in your Supabase project dashboard.
@@ -15,14 +16,15 @@ import { supabaseAnon as supabase } from './utils/supabase.js';
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
 const handler = async (event) => {
+  const pf = preflight(event); if (pf) return pf;
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+    return { statusCode: 405, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
     const { email, purpose } = JSON.parse(event.body) || {};
     if (!email || !/.+@.+\..+/.test(email)) {
-      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
+      return { statusCode: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
     // Default: don't create user for 'login'. We'll fallback to creating on user-not-found.
@@ -51,7 +53,7 @@ const handler = async (event) => {
       if (isRateLimited) {
         return {
           statusCode: 429,
-          headers: { 'Content-Type': 'application/json', 'Retry-After': String(DEFAULT_RETRY_AFTER_SECONDS) },
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Retry-After': String(DEFAULT_RETRY_AFTER_SECONDS) },
           body: JSON.stringify({ ok: false, error: `Too many code requests. Please wait ${DEFAULT_RETRY_AFTER_SECONDS} seconds and try again.`, detail: error.message }),
         };
       }
@@ -61,20 +63,20 @@ const handler = async (event) => {
       const errorMessage = isUserNotFound
         ? 'Email not found.'
         : 'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.';
-      return { statusCode, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
+      return { statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
     }
 
     console.log('Successfully sent OTP request to Supabase for:', email, 'Response data:', data);
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       body: JSON.stringify({ ok: true }),
     };
 
   } catch (e) {
     console.error('Critical error in /send-otp function:', e);
-    return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'Internal server error' }) };
+    return { statusCode: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Internal server error' }) };
   }
 };
 

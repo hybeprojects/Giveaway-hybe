@@ -1,6 +1,9 @@
 export type SendOtpResponse = { ok: true } | { ok: false; error: string };
 export type VerifyOtpResponse = { ok: true; session: { access_token: string } } | { ok: false; error: string };
 
+const meta = (import.meta as any).env || {};
+const FUNCTIONS_BASE: string = (meta.VITE_FUNCTIONS_BASE as string) || '/.netlify/functions';
+
 export type UserEntry = {
   email: string;
   name: string;
@@ -49,7 +52,7 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
 
 export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<void> {
   const body = JSON.stringify({ email, purpose });
-  const endpoint = '/.netlify/functions/send-otp';
+  const endpoint = `${FUNCTIONS_BASE}/send-otp`;
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
   const data = await parseJsonOrThrow(res, 'Failed to send code');
   const typed = data as SendOtpResponse;
@@ -58,7 +61,7 @@ export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'l
 
 export async function verifyOtp(email: string, code: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
   const body = JSON.stringify({ email, code, purpose });
-  const endpoint = '/.netlify/functions/verify-otp';
+  const endpoint = `${FUNCTIONS_BASE}/verify-otp`;
   const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
   const data = await parseJsonOrThrow(res, 'Verification failed');
   const typed = data as VerifyOtpResponse;
@@ -90,7 +93,7 @@ export async function getMe(): Promise<GetMeResponse> {
   const sessionToken = localStorage.getItem('local_session') || '';
   if (!sessionToken) return { ok: false, error: 'Not logged in' };
   const headers = { 'Authorization': `Bearer ${sessionToken}` };
-  const endpoint = '/.netlify/functions/get-me';
+  const endpoint = `${FUNCTIONS_BASE}/get-me`;
   const res = await tryFetch(endpoint, { method: 'GET', headers });
   const data = await parseJsonOrThrow(res, 'Failed to load user data');
   return data as GetMeResponse;
