@@ -6,6 +6,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
+import OTPModal from '../components/OTPModal';
 import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession, issueFormNonce } from '../utils/auth';
 
 // HYBE hierarchy: Branch -> Group -> Artists
@@ -94,7 +95,6 @@ const EntryFormPage: React.FC = () => {
   const [otpOpen, setOtpOpen] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
-  const [otpShake, setOtpShake] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
@@ -396,8 +396,7 @@ const EntryFormPage: React.FC = () => {
       setOtpVerified(false);
       const msg = e?.message || 'Please enter the 6-digit OTP sent to your email.';
       setOtpError(msg);
-      setOtpShake(true);
-      setTimeout(() => setOtpShake(false), 500);
+
     } finally {
       setIsVerifying(false);
     }
@@ -412,9 +411,16 @@ const EntryFormPage: React.FC = () => {
     } catch (e: any) {
       const msg = e?.message || 'Failed to resend code';
       setOtpError(msg);
-      setOtpShake(true);
-      setTimeout(() => setOtpShake(false), 500);
+
     }
+  };
+
+  const changeEmailAndSend = async (nextEmail: string) => {
+    if (!nextEmail) return;
+    setPendingEmail(nextEmail);
+    await requestOtp(nextEmail, 'login');
+    setOtpError(null);
+    setResendIn(RESEND_COOLDOWN_SECONDS);
   };
 
   const closeOtp = () => {
@@ -699,43 +705,19 @@ const EntryFormPage: React.FC = () => {
 
       {/* OTP Modal */}
       {otpOpen && (
-        <div className="modal-overlay" onClick={closeOtp}>
-          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="otp-heading" onClick={e => e.stopPropagation()}>
-            <p className="modal-title-label">Email verification</p>
-            <h2 id="otp-heading">Confirm your email</h2>
-            <p>Please enter the 6-digit OTP sent to your email: <strong>{pendingEmail}</strong>.</p>
-            <div className="otp-input-row">
-              <input
-                id="otp-code"
-                className={`form-control ${otpError ? 'is-invalid' : ''} ${otpVerified ? 'otp-success' : ''} ${otpShake ? 'shake' : ''}`}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/[^\\d]/g, '').slice(0, 6))}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  const text = (e.clipboardData || (window as any).clipboardData).getData('text');
-                  const digits = String(text || '').replace(/[^\\d]/g, '').slice(0, 6);
-                  if (digits) setOtpCode(digits);
-                }}
-                inputMode="numeric"
-                pattern="\\\\d*"
-                maxLength={6}
-                aria-invalid={!!otpError}
-                aria-describedby={otpError ? 'otp-code-error' : undefined}
-                autoFocus
-              />
-              {(isVerifying || otpVerified) && (
-                <div className="otp-trailing" aria-hidden="true">
-                  {otpVerified ? <div className="otp-check" aria-hidden="true" /> : <div className="loading-spinner" />}
-                </div>
-              )}
-            </div>
-            {otpError && <div id="otp-code-error" className="invalid-feedback d-block">{otpError}</div>}
-            <div className="button-row mt-14">
-              <button type="button" className="button-secondary" onClick={resendCode} disabled={isVerifying || resendIn > 0}>{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
-              <button type="button" className="button-secondary" onClick={closeOtp} disabled={isVerifying}>Cancel</button>
-            </div>
-          </div>
-        </div>
+        <OTPModal
+          isOpen={otpOpen}
+          email={pendingEmail}
+          error={otpError}
+          code={otpCode}
+          isVerifying={isVerifying}
+          verified={otpVerified}
+          resendIn={resendIn}
+          onRequestClose={closeOtp}
+          onCodeChange={(v) => setOtpCode(v.replace(/[^\\d]/g, '').slice(0, 6))}
+          onResend={resendCode}
+          onChangeEmailAndSend={changeEmailAndSend}
+        />
       )}
 
       <Footer />
