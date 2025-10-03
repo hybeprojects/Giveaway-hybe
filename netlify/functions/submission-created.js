@@ -26,19 +26,48 @@ export const handler = async (event) => {
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };
     }
 
-    // OTP session token passed as a hidden field in the form payload
-    const token = data['supabase_token'] || '';
-    if (!token) {
-      return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
+    // Anti-replay: short-lived nonce + client timestamp
+    const supabase_nonce = data['supabase_nonce'] || '';
+    const tsStr = data['ts'] || '';
+    const ts = Number(tsStr);
+    const nowMs = Date.now();
+    const MAX_SKEW_MS = 5 * 60 * 1000;
+    if (!supabase_nonce || !Number.isFinite(ts) || Math.abs(nowMs - ts) > MAX_SKEW_MS) {
+      return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid or expired submission context' }) };
     }
 
-    // Authenticate user via Supabase access token
+    // Look up nonce in DB
+    const { data: nonceRow, error: nonceError } = await supabase
+      .from('form_nonces')
+      .select('*')
+      .eq('nonce', supabase_nonce)
+      .maybeSingle();
+    if (nonceError) throw nonceError;
+    if (!nonceRow) {
+      return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
+    }
+    if (nonceRow.used) {
+      return { statusCode: 409, body: JSON.stringify({ ok: false, error: 'Token already consumed' }) };
+    }
+    if (nonceRow.expires_at && new Date(nonceRow.expires_at).getTime() < nowMs) {
+      return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Expired token' }) };
+    }
+
+    const token = nonceRow.token;
     const { data: userRes, error: authError } = await supabase.auth.getUser(token);
     if (authError || !userRes || !userRes.user) {
       return { statusCode: 401, body: JSON.stringify({ ok: false, error: 'Unauthorized' }) };
     }
 
     const user = userRes.user;
+
+    // Mark nonce as used and capture submit IP/UA
+    const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || event.headers['client-ip'] || '';
+    const userAgent = event.headers['user-agent'] || '';
+    await supabase
+      .from('form_nonces')
+      .update({ used: true, used_at: new Date().toISOString(), submit_ip: clientIp, submit_user_agent: userAgent })
+      .eq('nonce', supabase_nonce);
 
     // Extract and normalize fields coming from Netlify Forms (strings)
     const email = String(data.email || '').trim();
@@ -136,9 +165,9 @@ export const handler = async (event) => {
     });
     if (ledgerError) console.error('Ledger bonus failed', ledgerError);
 
-    // Fire-and-forget event log
+    // Fire-and-forget event log with metadata
     try {
-      await supabase.from('events').insert({ type: 'entry', text: `${full_name || email} entered the giveaway`, meta: { email, country, referral_code: referral_code || null } });
+      await supabase.from('events').insert({ type: 'entry', text: `${full_name || email} entered the giveaway`, meta: { email, country, referral_code: referral_code || null, ip: clientIp, user_agent: userAgent } });
     } catch (e) {
       console.warn('Event insert failed', e);
     }

@@ -98,3 +98,14 @@ export async function getMe(): Promise<GetMeResponse> {
   const data = await parseJsonOrThrow(res, 'Failed to load user data');
   return data as GetMeResponse;
 }
+
+export async function issueFormNonce(): Promise<string> {
+  const sessionToken = localStorage.getItem('local_session') || '';
+  if (!sessionToken) throw new Error('Not logged in');
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` };
+  const endpoint = `${FUNCTIONS_BASE}/issue-form-nonce`;
+  const res = await tryFetch(endpoint, { method: 'POST', headers, body: JSON.stringify({ purpose: 'entry' }) });
+  const data = await parseJsonOrThrow(res, 'Failed to prepare secure form submission');
+  if (!data || !data.ok || !data.nonce) throw new Error(data?.error || 'Failed to prepare secure form submission');
+  return data.nonce as string;
+}
