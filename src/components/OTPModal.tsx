@@ -189,7 +189,7 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
           {digits.map((d, i) => (
             <div key={i} className={`otp-cell ${error ? 'is-error' : ''} ${verified ? 'is-success' : ''}`}>
               <input
-                ref={el => boxesRef.current[i] = el}
+                ref={(el) => { boxesRef.current[i] = el; }}
                 type="text"
                 inputMode="numeric"
                 pattern="\\d*"
