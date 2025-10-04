@@ -1,46 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { tryFetch } from '../utils/auth';
+import { useEffect, useRef, useState } from 'react';
 import { useLiveEntriesCount } from '../utils/liveMetrics';
+import { FIRST_NAMES, LAST_NAMES, CITIES, VERBS, EMOJIS } from '../utils/liveFeedData';
 import '../styles/live-updates.css';
 
-function timeAgo(date: string | Date) {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  const m = Math.floor(diff / 60); if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
-  const days = Math.floor(h / 24); return `${days}d ago`;
-}
-
-const FIRST_NAMES = ['Alex','Jordan','Taylor','Sam','Casey','Drew','Riley','Morgan','Jamie','Avery','Quinn','Cameron'];
-const CITIES = ['New York','Seoul','Los Angeles','London','Tokyo','Paris','Toronto','Sydney','Chicago','Berlin','Singapore','Mexico City'];
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 export default function LiveUpdates() {
   const entries = useLiveEntriesCount();
-  const [feed, setFeed] = useState<{ text: string; created_at: string }[] | null>(null);
   const [ticker, setTicker] = useState<string>('');
+  const [tickerKey, setTickerKey] = useState<number>(0);
+  const [lastCity, setLastCity] = useState<string>('');
+  const [lastWhen, setLastWhen] = useState<string>('just now');
   const [pulsing, setPulsing] = useState(false);
   const prevEntries = useRef<number>(entries);
 
-  const ENABLE_EVENTS = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_ENABLE_EVENTS) === 'true';
-
-  useEffect(() => {
-    if (!ENABLE_EVENTS) return;
-    let active = true;
-    const fetchEvents = async () => {
-      const url = '/.netlify/functions/get-events';
-      try {
-        const res = await tryFetch(url, { method: 'GET' });
-        if (res && (res as any).ok) {
-          const data = await (res as any).json();
-          if (active) setFeed(data);
-        }
-      } catch (_) {}
-    };
-    fetchEvents();
-    const id = setInterval(fetchEvents, 10000);
-    return () => { active = false; clearInterval(id); };
-  }, [ENABLE_EVENTS]);
+  // Rolling dedupe of recent names
+  const recentQueueRef = useRef<string[]>([]);
+  const recentSetRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (entries !== prevEntries.current) {
@@ -51,35 +28,55 @@ export default function LiveUpdates() {
     }
   }, [entries]);
 
-  const lastCity = useMemo(() => {
-    const item = feed && feed.length ? feed[0] : null;
-    if (item && item.text) {
-      const m = item.text.match(/from\s+([^,.!]+)/i);
-      if (m && m[1]) return m[1].trim();
+  function uniqueFullName(): string {
+    const maxAttempts = 1000;
+    for (let i = 0; i < maxAttempts; i++) {
+      const name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+      if (!recentSetRef.current.has(name)) {
+        recentSetRef.current.add(name);
+        recentQueueRef.current.push(name);
+        if (recentQueueRef.current.length > 500) {
+          const old = recentQueueRef.current.shift()!;
+          recentSetRef.current.delete(old);
+        }
+        return name;
+      }
     }
-    return CITIES[Math.floor(Math.random() * CITIES.length)];
-  }, [feed]);
+    // If highly unlikely exhaustion occurs, clear oldest 100 and try again
+    for (let i = 0; i < 100 && recentQueueRef.current.length; i++) {
+      const old = recentQueueRef.current.shift()!;
+      recentSetRef.current.delete(old);
+    }
+    return uniqueFullName();
+  }
 
-  const lastWhen = useMemo(() => {
-    const item = feed && feed.length ? feed[0] : null;
-    if (item && item.created_at) return timeAgo(item.created_at);
-    const mins = Math.max(1, Math.floor(Math.random() * 5));
-    return `${mins}m ago`;
-  }, [feed]);
+  function randomWhen(): string {
+    const opts = ['just now','moments ago','1 minute ago','2 minutes ago'];
+    return pick(opts);
+  }
+
+  function maybeEmoji(): string {
+    return Math.random() < 0.35 ? ` ${pick(EMOJIS)}` : '';
+  }
 
   useEffect(() => {
-    const mkName = () => FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-    const mkCity = () => CITIES[Math.floor(Math.random() * CITIES.length)];
-    let i = 0;
-    const tick = () => {
-      const text = feed && feed.length ? feed[i % feed.length].text : `${mkName()} just entered from ${mkCity()}`;
-      setTicker(text);
-      i += 1;
+    let timeout: number | null = null;
+    const run = () => {
+      const name = uniqueFullName();
+      const city = pick(CITIES);
+      const verb = pick(VERBS);
+      const when = randomWhen();
+      const line = `${name} ${verb} from ${city}${maybeEmoji()} — ${when}`;
+      setTicker(line);
+      setTickerKey(k => k + 1);
+      setLastCity(city);
+      setLastWhen(when);
+      const delay = randInt(10000, 20000);
+      timeout = window.setTimeout(run, delay) as unknown as number;
     };
-    tick();
-    const id = setInterval(tick, 7000);
-    return () => clearInterval(id);
-  }, [feed]);
+    run();
+    return () => { if (timeout) clearTimeout(timeout); };
+  }, []);
 
   return (
     <section id="updates" className="section live-updates-section" aria-label="Live Updates">
@@ -104,7 +101,7 @@ export default function LiveUpdates() {
 
           <div className="live-feed" aria-live="polite" aria-atomic="true">
             <span className="feed-bullet" aria-hidden="true">•</span>
-            <span className="feed-text">{ticker}</span>
+            <span key={tickerKey} className="feed-text fade-in">{ticker}</span>
           </div>
         </div>
       </div>
