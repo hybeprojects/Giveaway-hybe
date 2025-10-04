@@ -1,71 +1,53 @@
-import supabaseAdmin, { supabaseAnon as supabase } from './utils/supabase.js';
-import { CORS_HEADERS, preflight } from './utils/cors.js';
-import crypto from 'crypto';
-import { sendEmail, renderEmail } from './utils/email.mock.js';
 
-// IMPORTANT: Supabase email template customization
-// This function relies on the email templates configured in your Supabase project dashboard.
-// To send a 6-digit OTP, you MUST customize the "Confirm signup" template.
-// Ensure the template includes the `{{ .Token }}` variable.
-//
-// Example template:
-// <h2>Your One-Time Password</h2>
-// <p>Your one-time password is: <strong>{{ .Token }}</strong></p>
-//
-// A misconfigured template will prevent users from receiving the code.
-// For more information, visit the Supabase documentation on email templates.
+const OTP_TTL_MINUTES = 10;
 
-const DEFAULT_RETRY_AFTER_SECONDS = 60;
+function makeCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+function isEmail(v) { return /.+@.+\..+/.test(v || ''); }
 
-const handler = async (event) => {
+export const handler = async (event) => {
   const pf = preflight(event); if (pf) return pf;
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
-    const { email, purpose } = JSON.parse(event.body) || {};
-    if (!email || !/.+@.+\..+/.test(email)) {
+    const { email } = JSON.parse(event.body || '{}');
+    if (!isEmail(email)) {
       return { statusCode: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
     }
 
-    // Default: don't create user for 'login'. We'll fallback to creating on user-not-found.
-    const shouldCreateUser = purpose !== 'login';
+    const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || event.headers['client-ip'] || '';
+    const userAgent = event.headers['user-agent'] || '';
 
-    let { data, error } = await supabase.auth.signInWithOtp({
+    const code = makeCode();
+    const now = new Date();
+    const expires = new Date(now.getTime() + OTP_TTL_MINUTES * 60 * 1000);
+
+    const { error: insertError } = await supabase.from('form_nonces').insert({
+      nonce: code,
       email,
-      options: { shouldCreateUser },
+      token: null,
+      used: false,
+      created_at: now.toISOString(),
+      expires_at: expires.toISOString(),
+      issue_ip: clientIp,
+      issue_user_agent: userAgent,
+      purpose: 'otp',
     });
-
-    // If user doesn't exist and we were in login mode, retry creating the user to keep OTP-only flow unified.
-    if (error && /user.*not.*found/i.test(error.message || '') && purpose === 'login') {
-      console.warn('User not found on OTP send; retrying with shouldCreateUser=true for', email);
-      const retry = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      data = retry.data; error = retry.error;
+    if (insertError) {
+      console.error('Failed to store OTP:', insertError);
+      return { statusCode: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Backend storage unavailable' }) };
     }
 
-    if (error) {
-      console.error('Supabase OTP error:', {
-        message: error.message,
-        status: error.status,
-        details: error.stack,
-      });
+    const origin = event.headers['origin'] || event.headers['referer'] || '';
+    const { subject, text, html } = renderOtpEmail({ origin, code, ttl: OTP_TTL_MINUTES });
 
-      const isRateLimited = error.status === 429 || /rate limit/i.test(error.message || '');
-      if (isRateLimited) {
-        return {
-          statusCode: 429,
-          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Retry-After': String(DEFAULT_RETRY_AFTER_SECONDS) },
-          body: JSON.stringify({ ok: false, error: `Too many code requests. Please wait ${DEFAULT_RETRY_AFTER_SECONDS} seconds and try again.`, detail: error.message }),
-        };
-      }
-
-      const isUserNotFound = /user.*not.*found/i.test(error.message || '');
-      const statusCode = isUserNotFound ? 404 : 400;
-      const errorMessage = isUserNotFound
-        ? 'Email not found.'
-        : 'Failed to send OTP. This is likely due to a misconfigured "Confirm signup" template in Supabase. Please check your Supabase dashboard and ensure the template includes the {{ .Token }} variable.';
-      return { statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: errorMessage, detail: error.message }) };
+    try {
+      await sendEmail(event, { to: email, subject, text, html });
+    } catch (e) {
+      const status = classifyEmailError(e);
+      console.error('SMTP send failed:', e);
+      return { statusCode: status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Failed to send email' }) };
     }
 
     console.log('Successfully sent OTP request to Supabase for:', email, 'Response data:', data);
@@ -116,9 +98,9 @@ const handler = async (event) => {
     };
 
   } catch (e) {
-    console.error('Critical error in /send-otp function:', e);
+    console.error('Error in send-otp:', e);
     return { statusCode: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Internal server error' }) };
   }
 };
 
-export { handler };
+export { handler as default };
