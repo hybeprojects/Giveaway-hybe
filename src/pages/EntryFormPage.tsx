@@ -396,6 +396,7 @@ const EntryFormPage: React.FC = () => {
       setOtpVerified(false);
       const msg = e?.message || 'Please enter the 6-digit OTP sent to your email.';
       setOtpError(msg);
+      setOtpCode('');
 
     } finally {
       setIsVerifying(false);
