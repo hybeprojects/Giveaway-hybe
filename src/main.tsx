@@ -36,13 +36,16 @@ if ('serviceWorker' in navigator) {
 import { BrowserRouter } from 'react-router-dom';
 
 import { ToastProvider } from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ToastProvider>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
