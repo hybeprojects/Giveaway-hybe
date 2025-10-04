@@ -5,7 +5,6 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
-import { getLocalSession } from '../utils/auth';
 
 // HYBE hierarchy: Branch -> Group -> Artists
 const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
@@ -79,7 +78,6 @@ const fallbackCountries: { code: string; name: string }[] = [
 
 const EntryFormPage: React.FC = () => {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [sessionEmail, setSessionEmail] = useState<string>('');
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
@@ -117,14 +115,6 @@ const EntryFormPage: React.FC = () => {
   const selectedBranch = watch('fanPreferenceBranch');
   const selectedGroup = watch('favoriteGroup');
 
-  // Load session and pre-fill email if available (do not require login)
-  useEffect(() => {
-    const s = getLocalSession();
-    if (s && s.email) {
-      setSessionEmail(s.email);
-      setValue('email', s.email, { shouldValidate: true });
-    }
-  }, [setValue]);
 
   // Safe fetch wrapper
   async function safeFetch(input: RequestInfo, init?: RequestInit) {
@@ -310,7 +300,7 @@ const EntryFormPage: React.FC = () => {
       fullName: data.fullName?.trim() || '',
       dob: data.dob || '',
       gender: data.gender || '',
-      email: (sessionEmail || data.email || '').trim(),
+      email: (data.email || '').trim(),
       phone: data.phone || '',
       zangiId: data.zangiId?.trim() || '',
       addressLine1: data.addressLine1?.trim() || '',
@@ -401,7 +391,6 @@ const EntryFormPage: React.FC = () => {
                       required: 'Email is required.',
                       pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email address.' }
                     })}
-                    readOnly={!!sessionEmail}
                   />
                   {errors.email && <div className="invalid-feedback">{errors.email.message}</div>}
                 </div>
