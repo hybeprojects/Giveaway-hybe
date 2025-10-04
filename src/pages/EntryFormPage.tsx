@@ -339,6 +339,53 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
+      const meta = (import.meta as any).env || {};
+      const FUNCTIONS_BASE: string = (meta.VITE_FUNCTIONS_BASE as string) || '/.netlify/functions';
+      const sessionToken = localStorage.getItem('local_session') || '';
+
+      // If we have a local session token, submit directly to the protected serverless function
+      if (sessionToken) {
+        const endpoint = `${FUNCTIONS_BASE}/post-entry`;
+
+        // Map client form payload to server-side expected field names
+        const functionPayload: Record<string, any> = {
+          email: payload.email,
+          full_name: payload.fullName || '',
+          phone: payload.phone || null,
+          birthdate: payload.dob || null,
+          country: payload.country || '',
+          consent_terms: payload.consentTerms === 'true' || payload.consentTerms === true,
+          consent_privacy: payload.consentPrivacy === 'true' || payload.consentPrivacy === true,
+          referral_code: payload.referralCode || null,
+          favorite_artist: payload.favoriteArtist || null,
+          // Include address info for completeness
+          address_line1: payload.addressLine1 || null,
+          address_line2: payload.addressLine2 || null,
+          city: payload.city || null,
+          state: payload.state || null,
+          postal_code: payload.postalCode || null,
+          use_as_mailing_address: payload.useAsMailingAddress === 'true' || payload.useAsMailingAddress === true,
+          supabase_nonce: payload.supabase_nonce || null,
+          ts: payload.ts || null,
+        };
+
+        const response = await safeFetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
+          body: JSON.stringify(functionPayload),
+        });
+
+        if (!response || !response.ok) {
+          setSubmissionError('Form submit failed. Please try again.');
+          return;
+        }
+
+        // Function responded OK
+        window.location.href = '/success.html';
+        return;
+      }
+
+      // No session token: fallback to Netlify Forms submission (url-encoded to site root)
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
       const response = await safeFetch('/', {
         method: 'POST',
@@ -350,6 +397,7 @@ const EntryFormPage: React.FC = () => {
         setSubmissionError('Form submit failed. Please try again.');
         return;
       }
+
       window.location.href = '/success.html';
     } catch (err) {
       console.error('Submission Error:', err);
