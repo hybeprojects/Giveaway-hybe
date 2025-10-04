@@ -1,6 +1,3 @@
-import supabase from './utils/supabase.js';
-import { CORS_HEADERS, preflight } from './utils/cors.js';
-import { renderOtpEmail, sendEmail, classifyEmailError } from './utils/email.js';
 
 const OTP_TTL_MINUTES = 10;
 
@@ -53,7 +50,53 @@ export const handler = async (event) => {
       return { statusCode: status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Failed to send email' }) };
     }
 
-    return { statusCode: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify({ ok: true }) };
+    console.log('Successfully sent OTP request to Supabase for:', email, 'Response data:', data);
+
+    // Optional: also issue an app-managed 6-digit OTP and persist it to form_nonces for custom verification flows.
+    // This block is best-effort and will not affect the primary response.
+    try {
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      const nonce = crypto.randomUUID();
+      const now = new Date();
+      const expires = new Date(now.getTime() + 5 * 60 * 1000);
+      const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || event.headers['client-ip'] || '';
+      const userAgent = event.headers['user-agent'] || '';
+
+      if (supabaseAdmin && typeof supabaseAdmin.from === 'function') {
+        await supabaseAdmin.from('form_nonces').insert({
+          nonce,
+          email,
+          token: otp,
+          purpose: purpose || 'entry',
+          issue_ip: clientIp,
+          issue_user_agent: userAgent,
+          used: false,
+          created_at: now.toISOString(),
+          expires_at: expires.toISOString(),
+        });
+
+        try {
+          const html = renderEmail('send-otp', 'Your One-Time Password', `<p>Your one-time password is:</p><h2>${otp}</h2><p>This code expires in 5 minutes.</p>`);
+          await sendEmail(event, {
+            to: email,
+            subject: 'Your OTP Code',
+            text: `Your one-time password is: ${otp}. It expires in 5 minutes.`,
+            html,
+          });
+        } catch (emailErr) {
+          console.warn('OTP email send skipped/failed:', emailErr?.message || emailErr);
+        }
+      }
+    } catch (persistErr) {
+      console.warn('OTP persistence skipped/failed:', persistErr?.message || persistErr);
+    }
+
+    return {
+      statusCode: 200,
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({ ok: true }),
+    };
+
   } catch (e) {
     console.error('Error in send-otp:', e);
     return { statusCode: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'Internal server error' }) };

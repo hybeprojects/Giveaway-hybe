@@ -9,6 +9,72 @@ export const handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
     const payload = body && body.payload ? body.payload : null;
+
+    // Direct API mode: simple JSON { email, otp }
+    if (!payload && body && body.email && body.otp) {
+      const email = String(body.email || '').trim();
+      const otp = String(body.otp || '').trim();
+
+      if (!isEmail(email)) {
+        return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid email' }) };
+      }
+      if (!/^\d{6}$/.test(otp)) {
+        return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid or expired OTP' }) };
+      }
+
+      const nowIso = new Date().toISOString();
+      const { data: nonce, error } = await supabase
+        .from('form_nonces')
+        .select('*')
+        .eq('email', email)
+        .eq('token', otp)
+        .eq('used', false)
+        .gt('expires_at', nowIso)
+        .maybeSingle();
+
+      if (error || !nonce) {
+        return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Invalid or expired OTP' }) };
+      }
+
+      await supabase
+        .from('form_nonces')
+        .update({ used: true, used_at: new Date().toISOString() })
+        .eq('nonce', nonce.nonce);
+
+      // Minimal entry creation
+      try {
+        await supabase.from('entries').insert({ email });
+      } catch (e) {
+        // If duplicate or schema mismatch, surface as 409
+        if ((e && e.code === '23505') || /duplicate/i.test(e?.message || '')) {
+          return { statusCode: 409, body: JSON.stringify({ ok: false, error: 'Entry already exists for this email' }) };
+        }
+        console.warn('entries insert warning:', e);
+      }
+
+      // Credit ledger_entries (preferred schema)
+      try {
+        await supabase.from('ledger_entries').insert({
+          email,
+          type: 'credit',
+          amount: 100,
+          currency: 'points',
+          note: 'Welcome bonus',
+          status: 'available',
+        });
+      } catch (e) {
+        console.warn('ledger_entries insert warning:', e);
+        // Fallback: legacy table name "ledger" if present
+        try {
+          await supabase.from('ledger').insert({ email, bonus: 100 });
+        } catch (e2) {
+          console.warn('ledger insert warning:', e2);
+        }
+      }
+
+      return { statusCode: 200, body: JSON.stringify({ success: true, redirect: '/success.html' }) };
+    }
+
     if (!payload) {
       return { statusCode: 400, body: JSON.stringify({ ok: false, error: 'Missing payload' }) };
     }
