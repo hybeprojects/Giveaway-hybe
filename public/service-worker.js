@@ -36,8 +36,16 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     (async () => {
       try {
-        // Navigation requests: prefer cached index.html, fallback to network.
+        // Navigation requests: allow direct HTML pages like /success.html; otherwise serve SPA index.html
         if (event.request.mode === 'navigate') {
+          const url = new URL(event.request.url);
+          if (url.pathname === '/success.html') {
+            const cachedSuccess = await caches.match('/success.html');
+            if (cachedSuccess) return cachedSuccess;
+            const resp = await fetch('/success.html');
+            try { const cache = await caches.open(CACHE_NAME); cache.put('/success.html', resp.clone()); } catch (e) { /* ignore */ }
+            return resp;
+          }
           const cachedIndex = await caches.match('/index.html');
           if (cachedIndex) return cachedIndex;
           const response = await fetch('/index.html');
