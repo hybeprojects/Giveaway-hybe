@@ -103,7 +103,7 @@ export default function LiveUpdates() {
           </div>
 
           <div className="live-feed" aria-live="polite" aria-atomic="true">
-            <span className="feed-bullet" aria-hidden>•</span>
+            <span className="feed-bullet" aria-hidden="true">•</span>
             <span className="feed-text">{ticker}</span>
           </div>
         </div>
