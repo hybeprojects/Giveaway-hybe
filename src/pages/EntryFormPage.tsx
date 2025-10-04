@@ -276,17 +276,30 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
+      // Try direct serverless function first (works in dev and on Netlify)
+      const apiRes = await safeFetch('/.netlify/functions/submit-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (apiRes && apiRes.ok) {
+        window.location.href = '/success.html';
+        return;
+      }
+
+      // Fallback to Netlify Forms (requires Netlify hosting)
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
-      const response = await safeFetch('/', {
+      const formRes = await safeFetch('/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
       });
-      if (!response || !response.ok) {
-        setSubmissionError('Form submit failed. Please try again.');
+      if (formRes && formRes.ok) {
+        window.location.href = '/success.html';
         return;
       }
-      window.location.href = '/success.html';
+
+      setSubmissionError('Form submit failed. Please try again.');
     } catch (err) {
       console.error('Submission Error:', err);
       setSubmissionError('A network error occurred. Please try again later.');
