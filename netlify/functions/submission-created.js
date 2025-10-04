@@ -81,25 +81,14 @@ export const handler = async (event) => {
     }
 
     // Insert new entry
+    const shippingParts = [address_line1, address_line2, city, state, postal_code].filter(Boolean);
+    const shipping_address = shippingParts.length ? shippingParts.join(', ') : null;
+
     const entryPayload = {
       email,
-      full_name,
-      phone: phone || null,
-      birthdate: birthdate || null,
+      name: full_name,
       country,
-      consent_terms: !!consent_terms,
-      consent_privacy: !!consent_privacy,
-      marketing_opt_in: !!marketing_opt_in,
-      favorite_artist: favorite_artist || null,
-      favorite_group: favorite_group || null,
-      fan_preference_branch: fan_preference_branch || null,
-      address_line1,
-      address_line2,
-      city,
-      state,
-      postal_code,
-      use_as_mailing,
-      referral_code: referral_code || null,
+      shipping_address,
     };
 
     const { error: insertError } = await supabase.from('entries').insert(entryPayload);
