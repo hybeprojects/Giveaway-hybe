@@ -6,8 +6,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
-import OTPModal from '../components/OTPModal';
-import { getLocalSession, requestOtp, verifyOtp as verifyOtpFn, saveLocalSession, issueFormNonce } from '../utils/auth';
+import { getLocalSession } from '../utils/auth';
 
 // HYBE hierarchy: Branch -> Group -> Artists
 const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
@@ -79,8 +78,6 @@ const fallbackCountries: { code: string; name: string }[] = [
   { code: 'KR', name: 'South Korea' },
 ];
 
-const RESEND_COOLDOWN_SECONDS = 30;
-
 const EntryFormPage: React.FC = () => {
   const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -88,20 +85,13 @@ const EntryFormPage: React.FC = () => {
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | undefined>(undefined);
 
-  // Preview + OTP modal flow state
+  // Preview flow state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [otpOpen, setOtpOpen] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
-  const [pendingEmail, setPendingEmail] = useState<string>('');
-  const [resendIn, setResendIn] = useState(0);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, setValue, watch } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setValue, watch } = useForm({
     defaultValues: {
       referralCode: '',
       fullName: '',
@@ -138,27 +128,18 @@ const EntryFormPage: React.FC = () => {
     }
   }, [setValue]);
 
-  // Safe fetch wrapper to avoid crashes from third-party fetch wrappers (FullStory etc.).
-  // Prefer native fetch when available; if the global fetch appears wrapped (non-native) or
-  // throws synchronously, fall back to an XMLHttpRequest-based shim to avoid instrumentation
-  // wrappers that can break the app.
+  // Safe fetch wrapper
   async function safeFetch(input: RequestInfo, init?: RequestInit) {
     const isNativeFunction = (fn: any) => typeof fn === 'function' && Function.prototype.toString.call(fn).includes('[native code]');
-
-    // If fetch looks native, try it first. Otherwise skip straight to XHR fallback to avoid
-    // triggering wrappers (FullStory) that may throw synchronously or log noisy errors.
     if (typeof fetch === 'function' && isNativeFunction(fetch)) {
       try {
         return await (fetch as any)(input, init);
       } catch (err) {
         console.warn('[safeFetch] native fetch failed for', input, err);
-        // fall through to XHR fallback
       }
     } else {
       console.warn('[safeFetch] global fetch is not native; using XHR fallback for', input);
     }
-
-    // XHR fallback implementation
     try {
       return await new Promise<Response>((resolve, reject) => {
         try {
@@ -166,23 +147,18 @@ const EntryFormPage: React.FC = () => {
           const method = (init && init.method) ? String(init.method).toUpperCase() : 'GET';
           const url = String(input);
           xhr.open(method, url, true);
-
-          // Set headers if provided
           if (init && init.headers) {
             const headers = init.headers as Record<string, string> | Headers;
             if (typeof (headers as any).forEach === 'function') {
-              // Headers object like
               (headers as any).forEach((value: string, key: string) => xhr.setRequestHeader(key, value));
             } else {
               Object.entries(headers as Record<string, string>).forEach(([k, v]) => xhr.setRequestHeader(k, v));
             }
           }
-
           xhr.onreadystatechange = () => {
             if (xhr.readyState !== 4) return;
             const status = xhr.status || 0;
             const ok = status >= 200 && status < 300;
-
             const shim: Partial<Response> = {
               ok,
               status,
@@ -190,37 +166,22 @@ const EntryFormPage: React.FC = () => {
               url: url,
               text: async () => xhr.responseText,
               json: async () => {
-                try {
-                  return JSON.parse(xhr.responseText || 'null');
-                } catch (err) {
-                  throw err;
-                }
+                try { return JSON.parse(xhr.responseText || 'null'); } catch (err) { throw err; }
               }
             };
-
             resolve(shim as unknown as Response);
           };
-
           xhr.onerror = () => reject(new TypeError('Network request failed'));
-
-          // Send body for methods like POST
           if (init && init.body != null) {
-            // If body is a URLSearchParams or object, stringify accordingly
             if (typeof init.body === 'object' && !(init.body instanceof ArrayBuffer) && !(init.body instanceof Blob) && !(init.body instanceof FormData)) {
-              try {
-                xhr.send(typeof init.body === 'string' ? init.body : JSON.stringify(init.body));
-              } catch (e) {
-                xhr.send(String(init.body));
-              }
+              try { xhr.send(typeof init.body === 'string' ? init.body : JSON.stringify(init.body)); } catch (e) { xhr.send(String(init.body)); }
             } else {
               xhr.send(init.body as any);
             }
           } else {
             xhr.send();
           }
-        } catch (err) {
-          reject(err);
-        }
+        } catch (err) { reject(err); }
       });
     } catch (xhrErr) {
       console.warn('[safeFetch] XHR fallback failed for', input, xhrErr);
@@ -228,7 +189,7 @@ const EntryFormPage: React.FC = () => {
     }
   }
 
-  // Fetch global country list from REST Countries API for robust worldwide support
+  // Fetch global country list
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -248,7 +209,7 @@ const EntryFormPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Detect user country by IP and preselect for both phone formatting and address country
+  // Geo-detect country
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -261,41 +222,29 @@ const EntryFormPage: React.FC = () => {
           setSelectedCountry(code);
           setValue('country', code, { shouldValidate: true, shouldDirty: true });
         }
-      } catch (err) {
-        // Silent fallback: keep defaults
+      } catch {
       }
     })();
     return () => { cancelled = true; };
   }, [setValue]);
 
-  // Auto-refresh once when route loader hides to ensure full form responsiveness
+  // Auto-refresh once when route loader hides
   useEffect(() => {
     const onHidden = () => {
       if (sessionStorage.getItem('entry_auto_refreshed')) return;
       sessionStorage.setItem('entry_auto_refreshed', '1');
-      setTimeout(() => {
-        window.location.reload();
-      }, 0);
+      setTimeout(() => { window.location.reload(); }, 0);
     };
     window.addEventListener('route-loader-hidden', onHidden);
-    return () => {
-      window.removeEventListener('route-loader-hidden', onHidden);
-    };
+    return () => { window.removeEventListener('route-loader-hidden', onHidden); };
   }, []);
 
-  // Keep phone input formatting in sync with the selected address country
+  // Keep phone input formatting in sync
   useEffect(() => {
     if (watchedCountry && watchedCountry !== selectedCountry) {
       setSelectedCountry(watchedCountry);
     }
   }, [watchedCountry, selectedCountry]);
-
-  // Resend cooldown countdown
-  useEffect(() => {
-    if (!otpOpen || resendIn <= 0) return;
-    const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(t);
-  }, [otpOpen, resendIn]);
 
   // Derived options for cascading selects
   const branchOptions = useMemo(() => (
@@ -339,65 +288,16 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
-      const meta = (import.meta as any).env || {};
-      const FUNCTIONS_BASE: string = (meta.VITE_FUNCTIONS_BASE as string) || '/.netlify/functions';
-      const sessionToken = localStorage.getItem('local_session') || '';
-
-      // If we have a local session token, submit directly to the protected serverless function
-      if (sessionToken) {
-        const endpoint = `${FUNCTIONS_BASE}/post-entry`;
-
-        // Map client form payload to server-side expected field names
-        const functionPayload: Record<string, any> = {
-          email: payload.email,
-          full_name: payload.fullName || '',
-          phone: payload.phone || null,
-          birthdate: payload.dob || null,
-          country: payload.country || '',
-          consent_terms: payload.consentTerms === 'true' || payload.consentTerms === true,
-          consent_privacy: payload.consentPrivacy === 'true' || payload.consentPrivacy === true,
-          referral_code: payload.referralCode || null,
-          favorite_artist: payload.favoriteArtist || null,
-          // Include address info for completeness
-          address_line1: payload.addressLine1 || null,
-          address_line2: payload.addressLine2 || null,
-          city: payload.city || null,
-          state: payload.state || null,
-          postal_code: payload.postalCode || null,
-          use_as_mailing_address: payload.useAsMailingAddress === 'true' || payload.useAsMailingAddress === true,
-          supabase_nonce: payload.supabase_nonce || null,
-          ts: payload.ts || null,
-        };
-
-        const response = await safeFetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
-          body: JSON.stringify(functionPayload),
-        });
-
-        if (!response || !response.ok) {
-          setSubmissionError('Form submit failed. Please try again.');
-          return;
-        }
-
-        // Function responded OK
-        window.location.href = '/success.html';
-        return;
-      }
-
-      // No session token: fallback to Netlify Forms submission (url-encoded to site root)
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
       const response = await safeFetch('/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
       });
-
       if (!response || !response.ok) {
         setSubmissionError('Form submit failed. Please try again.');
         return;
       }
-
       window.location.href = '/success.html';
     } catch (err) {
       console.error('Submission Error:', err);
@@ -407,8 +307,6 @@ const EntryFormPage: React.FC = () => {
 
   const onSubmit = async (data: any) => {
     setSubmissionError(null);
-
-    // Build Netlify Forms payload using field names matching index.html hidden form
     const payload: Record<string, any> = {
       referralCode: data.referralCode?.trim() || '',
       fullName: data.fullName?.trim() || '',
@@ -430,92 +328,20 @@ const EntryFormPage: React.FC = () => {
       consentTerms: data.consentTerms ? 'true' : 'false',
       consentPrivacy: data.consentPrivacy ? 'true' : 'false',
     };
-
-    // Always show preview first, then send OTP on confirm
     setPendingPayload(payload);
-    setPendingEmail(payload.email);
     setPreviewError(null);
     setPreviewOpen(true);
   };
 
-  useEffect(() => {
-    const code = otpCode.trim();
-    if (!otpOpen) return;
-    if (code.length === 6 && /^\d{6}$/.test(code) && !isVerifying) {
-      verifyAndSubmit();
-    }
-  }, [otpCode, otpOpen]);
-
-  const verifyAndSubmit = async () => {
-    if (!pendingEmail || !pendingPayload || isVerifying) return;
-    setIsVerifying(true);
-    setOtpError(null);
-    setOtpVerified(false);
-    try {
-      const token = await verifyOtpFn(pendingEmail, otpCode.trim(), 'login');
-      setOtpVerified(true);
-      await new Promise(r => setTimeout(r, 350));
-      saveLocalSession(token);
-      setSessionEmail(pendingEmail);
-      const nonce = await issueFormNonce();
-      const ts = Date.now().toString();
-      await submitEntryToNetlify({ ...pendingPayload, supabase_nonce: nonce, ts });
-      setOtpOpen(false);
-    } catch (e: any) {
-      setOtpVerified(false);
-      const msg = e?.message || 'Please enter the 6-digit OTP sent to your email.';
-      setOtpError(msg);
-      setOtpCode('');
-
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const resendCode = async () => {
-    if (!pendingEmail || resendIn > 0) return;
-    try {
-      await requestOtp(pendingEmail, 'login');
-      setOtpError(null);
-      setResendIn(RESEND_COOLDOWN_SECONDS);
-    } catch (e: any) {
-      const msg = e?.message || 'Failed to resend code';
-      setOtpError(msg);
-
-    }
-  };
-
-  const changeEmailAndSend = async (nextEmail: string) => {
-    if (!nextEmail) return;
-    setPendingEmail(nextEmail);
-    await requestOtp(nextEmail, 'login');
-    setOtpError(null);
-    setResendIn(RESEND_COOLDOWN_SECONDS);
-  };
-
-  const closeOtp = () => {
-    if (isVerifying) return;
-    setOtpOpen(false);
-    setOtpCode('');
-    setOtpError(null);
-    setOtpVerified(false);
-    setResendIn(0);
-  };
-
-  const confirmAndSendOtp = async () => {
-    if (!pendingEmail) return;
+  const confirmAndSubmit = async () => {
+    if (!pendingPayload) return;
     setIsConfirming(true);
     setPreviewError(null);
     try {
-      await requestOtp(pendingEmail, 'login');
+      await submitEntryToNetlify(pendingPayload);
       setPreviewOpen(false);
-      setOtpCode('');
-      setOtpError(null);
-      setOtpVerified(false);
-      setOtpOpen(true);
-      setResendIn(RESEND_COOLDOWN_SECONDS);
     } catch (e: any) {
-      setPreviewError(e?.message || 'Failed to send code');
+      setPreviewError('Failed to submit. Please try again.');
     } finally {
       setIsConfirming(false);
     }
@@ -766,28 +592,11 @@ const EntryFormPage: React.FC = () => {
             </div>
             {previewError && <div className="alert alert-danger" role="alert">{previewError}</div>}
             <div className="button-row">
-              <button type="button" className={`button-primary ${isConfirming ? 'is-loading' : ''}`} onClick={confirmAndSendOtp} disabled={isConfirming}>Confirm</button>
+              <button type="button" className={`button-primary ${isConfirming ? 'is-loading' : ''}`} onClick={confirmAndSubmit} disabled={isConfirming}>Confirm</button>
               <button type="button" className="button-secondary" onClick={() => setPreviewOpen(false)} disabled={isConfirming}>Back</button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* OTP Modal */}
-      {otpOpen && (
-        <OTPModal
-          isOpen={otpOpen}
-          email={pendingEmail}
-          error={otpError}
-          code={otpCode}
-          isVerifying={isVerifying}
-          verified={otpVerified}
-          resendIn={resendIn}
-          onRequestClose={closeOtp}
-          onCodeChange={(v) => setOtpCode(v.replace(/[^\\d]/g, '').slice(0, 6))}
-          onResend={resendCode}
-          onChangeEmailAndSend={changeEmailAndSend}
-        />
       )}
 
       <Footer />

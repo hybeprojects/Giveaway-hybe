@@ -1,6 +1,3 @@
-export type SendOtpResponse = { ok: true } | { ok: false; error: string };
-export type VerifyOtpResponse = { ok: true; session: { access_token: string } } | { ok: false; error: string };
-
 const meta = (import.meta as any).env || {};
 const FUNCTIONS_BASE: string = (meta.VITE_FUNCTIONS_BASE as string) || '/.netlify/functions';
 
@@ -50,25 +47,6 @@ async function parseJsonOrThrow(res: Response, fallbackMessage: string) {
   }
 }
 
-export async function requestOtp(email: string, purpose: 'login' | 'signup' = 'login'): Promise<void> {
-  const body = JSON.stringify({ email, purpose });
-  const endpoint = `${FUNCTIONS_BASE}/send-otp`;
-  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
-  const data = await parseJsonOrThrow(res, 'Failed to send code');
-  const typed = data as SendOtpResponse;
-  if (!typed.ok) throw new Error(typed.error || 'Failed to send code');
-}
-
-export async function verifyOtp(email: string, code: string, purpose: 'login' | 'signup' = 'login'): Promise<string> {
-  const body = JSON.stringify({ email, code, purpose });
-  const endpoint = `${FUNCTIONS_BASE}/verify-otp`;
-  const res = await tryFetch(endpoint, { method: 'POST', headers: buildHeaders(), body });
-  const data = await parseJsonOrThrow(res, 'Verification failed');
-  const typed = data as VerifyOtpResponse;
-  if (!typed.ok) throw new Error(typed.error || 'Verification failed');
-  return typed.session.access_token;
-}
-
 export function saveLocalSession(session: string) {
   localStorage.setItem('local_session', session);
 }
@@ -95,7 +73,7 @@ export async function getMe(): Promise<GetMeResponse> {
   const headers = { 'Authorization': `Bearer ${sessionToken}` };
   const endpoint = `${FUNCTIONS_BASE}/get-me`;
   const res = await tryFetch(endpoint, { method: 'GET', headers });
-  const data = await parseJsonOrThrow(res, 'Failed to load user data');
+  const data = await parseJsonOrThrow(res as any, 'Failed to load user data');
   return data as GetMeResponse;
 }
 
@@ -105,7 +83,7 @@ export async function issueFormNonce(): Promise<string> {
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` };
   const endpoint = `${FUNCTIONS_BASE}/issue-form-nonce`;
   const res = await tryFetch(endpoint, { method: 'POST', headers, body: JSON.stringify({ purpose: 'entry' }) });
-  const data = await parseJsonOrThrow(res, 'Failed to prepare secure form submission');
+  const data = await parseJsonOrThrow(res as any, 'Failed to prepare secure form submission');
   if (!data || !data.ok || !data.nonce) throw new Error(data?.error || 'Failed to prepare secure form submission');
   return data.nonce as string;
 }
