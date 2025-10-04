@@ -80,8 +80,12 @@
   border-radius: 10px;
   background: #fafafa;
   border: 1px solid #eee;
+  min-height: 40px;
+}
+@media (max-width: 480px) {
+  .live-feed { padding: 8px 10px; gap: 6px; }
 }
 .feed-bullet { color: var(--hybe-yellow); font-weight: 700; }
-.feed-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .feed-text.fade-in { animation: feed-fade 400ms ease-out; }
 @keyframes feed-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
