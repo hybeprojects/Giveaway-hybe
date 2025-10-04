@@ -1,7 +1,6 @@
 const CACHE_NAME = 'hybe-giveaway-v1';
 const ASSETS = [
   '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/icons/icon.svg'
 ];
@@ -25,7 +24,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve(true))));
+      await Promise.all(keys.map((k) => caches.delete(k)));
       await self.clients.claim();
     })()
   );
@@ -35,14 +34,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     (async () => {
       try {
-        // Navigation requests: prefer cached index.html, fallback to network.
+        // Navigation requests: always go to network for the freshest app shell.
         if (event.request.mode === 'navigate') {
-          const cachedIndex = await caches.match('/index.html');
-          if (cachedIndex) return cachedIndex;
-          const response = await fetch('/index.html');
-          // populate cache for future navigations
-          try { const cache = await caches.open(CACHE_NAME); cache.put('/index.html', response.clone()); } catch (e) { /* ignore */ }
-          return response;
+          return fetch(event.request);
         }
 
         // For other requests: try cache first, then network. If network succeeds, cache GET same-origin responses.
@@ -58,11 +52,10 @@ self.addEventListener('fetch', (event) => {
         } catch (e) { /* ignore cache put errors */ }
         return response;
       } catch (err) {
-        // On any failure, attempt to serve cached index.html as a fallback for navigation or return a generic offline response.
+        // On failure, return a minimal offline page to avoid stale caches.
         console.error('Service worker fetch failed:', err);
-        const fallback = await caches.match('/index.html');
-        if (fallback) return fallback;
-        return new Response('Service Unavailable', { status: 503, statusText: 'Service Unavailable' });
+        const offlineHtml = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Offline</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0b0b0b;color:#fff;font-family:sans-serif}</style></head><body><div><h1>You are offline</h1><p>Please check your connection and try again.</p></div></body></html>';
+        return new Response(offlineHtml, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
     })()
   );
