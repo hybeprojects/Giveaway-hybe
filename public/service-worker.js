@@ -2,6 +2,7 @@ const CACHE_NAME = 'hybe-giveaway-v1';
 const ASSETS = [
   '/',
   '/index.html',
+  '/success.html',
   '/manifest.webmanifest',
   '/icons/icon.svg'
 ];
