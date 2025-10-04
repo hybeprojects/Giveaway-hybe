@@ -5,6 +5,7 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
+import { getFunctionUrl } from '../utils/functionsApi';
 
 // HYBE hierarchy: Branch -> Group -> Artists
 const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
@@ -276,8 +277,8 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
-      // Try direct serverless function first (works in dev and on Netlify)
-      const apiRes = await safeFetch('/.netlify/functions/submit-entry', {
+      const submitUrl = getFunctionUrl('submit-entry');
+      const apiRes = await safeFetch(submitUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -287,7 +288,6 @@ const EntryFormPage: React.FC = () => {
         return;
       }
 
-      // Fallback to Netlify Forms (requires Netlify hosting)
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
       const formRes = await safeFetch('/', {
         method: 'POST',
