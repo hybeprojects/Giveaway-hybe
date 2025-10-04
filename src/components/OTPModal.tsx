@@ -28,9 +28,11 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
   const [editingEmail, setEditingEmail] = useState(false);
   const [editValue, setEditValue] = useState(email);
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [autoFillNotice, setAutoFillNotice] = useState(false);
   const boxesRef = useRef<Array<HTMLInputElement | null>>([null, null, null, null, null, null]);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const hiddenRef = useRef<HTMLInputElement | null>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const reduceMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
@@ -40,6 +42,15 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
     const filled = Array.from({ length: 6 }, (_, i) => next[i] || '');
     setDigits(filled);
   }, [code]);
+
+  // Clear boxes and focus first on error
+  useEffect(() => {
+    if (!error) return;
+    setDigits(['', '', '', '', '', '']);
+    setAutoFillNotice(false);
+    const first = boxesRef.current[0];
+    requestAnimationFrame(() => first?.focus());
+  }, [error]);
 
   // Emit joined code to parent whenever digits change
   useEffect(() => {
@@ -83,30 +94,40 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
     }
   }, [isOpen]);
 
-  // Auto focus first empty box when opened
+  // Encourage system OTP autofill by focusing hidden field briefly, then focus first empty box
   useEffect(() => {
     if (isOpen) {
+      hiddenRef.current?.focus({ preventScroll: true });
       const idx = digits.findIndex(d => d === '');
       const target = boxesRef.current[idx >= 0 ? idx : 5];
-      requestAnimationFrame(() => target?.focus());
+      const id = window.setTimeout(() => target?.focus(), 40);
+      return () => window.clearTimeout(id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Vibrations
-  useEffect(() => {
-    if (verified && navigator.vibrate) navigator.vibrate(20);
-  }, [verified]);
-  useEffect(() => {
-    if (error && navigator.vibrate) navigator.vibrate([20, 20]);
-  }, [error]);
+  useEffect(() => { if (verified && navigator.vibrate) navigator.vibrate(20); }, [verified]);
+  useEffect(() => { if (error && navigator.vibrate) navigator.vibrate([20, 20]); }, [error]);
+
+  const distributeIntoBoxes = (val: string) => {
+    const ds = String(val || '').replace(/[^\d]/g, '').slice(0, 6).split('');
+    const next = Array.from({ length: 6 }, (_, j) => ds[j] || '');
+    setDigits(next);
+    const focusIdx = Math.min(5, ds.length);
+    boxesRef.current[focusIdx]?.focus();
+  };
 
   const onBoxChange = (i: number, val: string) => {
+    // If autofill drops full code into first input, distribute
+    if (val.length > 1) {
+      distributeIntoBoxes(val);
+      return;
+    }
     const d = val.replace(/[^\d]/g, '').slice(0, 1);
     setDigits(prev => {
       const next = [...prev];
       next[i] = d;
-      // move forward when filled
       if (d && i < 5) boxesRef.current[i + 1]?.focus();
       return next;
     });
@@ -127,13 +148,21 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
   const onPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const text = (e.clipboardData || (window as any).clipboardData).getData('text');
-    const ds = String(text || '').replace(/[^\d]/g, '').slice(0, 6).split('');
-    if (ds.length) {
-      const next = Array.from({ length: 6 }, (_, j) => ds[j] || '');
-      setDigits(next);
-      const focusIdx = Math.min(5, ds.length);
-      boxesRef.current[focusIdx]?.focus();
+    distributeIntoBoxes(text);
+  };
+
+  const onHiddenInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const val = (e.currentTarget.value || '').toString();
+    const sanitized = val.replace(/[^\d]/g, '');
+    if (sanitized.length >= 6) {
+      setAutoFillNotice(false);
+      distributeIntoBoxes(sanitized);
+    } else if (val && sanitized.length === 0) {
+      setAutoFillNotice(true);
+      boxesRef.current[0]?.focus();
     }
+    // Clear hidden input value so OS can re-inject on next try
+    e.currentTarget.value = '';
   };
 
   const handleOverlayClick = () => {
@@ -185,36 +214,58 @@ export default function OTPModal({ isOpen, email, error, code, isVerifying, veri
           </div>
         )}
 
-        <div className="otp-grid mt-12" onPaste={onPaste} aria-label="Enter 6 digit code" role="group">
-          {digits.map((d, i) => (
-            <div key={i} className={`otp-cell ${error ? 'is-error' : ''} ${verified ? 'is-success' : ''}`}>
-              <input
-                ref={(el) => { boxesRef.current[i] = el; }}
-                type="text"
-                inputMode="numeric"
-                pattern="\\d*"
-                autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                className="otp-input"
-                value={d}
-                onChange={(e) => onBoxChange(i, e.target.value)}
-                onKeyDown={(e) => onKeyDown(i, e)}
-                onFocus={(e) => { e.currentTarget.select(); if (!reduceMotion) e.currentTarget.scrollIntoView({ block: 'center', behavior: 'auto' }); }}
-                aria-label={`Digit ${i + 1}`}
-                aria-invalid={!!error}
-                maxLength={1}
-              />
+        {/* Hidden field to encourage OS one-time-code autofill */}
+        <input
+          ref={hiddenRef}
+          aria-hidden="true"
+          tabIndex={-1}
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          onInput={onHiddenInput}
+          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+        />
+
+        <div className="otp-grid mt-12" onPaste={onPaste} aria-label="Enter 6 digit code" role="group" aria-describedby="otp-status">
+          {verified ? (
+            <div className="otp-success" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 56 }}>
+              <div className={`otp-check ${!reduceMotion ? 'animated' : ''}`} aria-hidden="true" />
             </div>
-          ))}
-          {(isVerifying || verified) && (
-            <div className="otp-inline-status" aria-hidden="true">
-              {verified ? <div className="otp-check" aria-hidden="true" /> : <div className="loading-spinner" />}
-            </div>
+          ) : (
+            <>
+              {digits.map((d, i) => (
+                <div key={i} className={`otp-cell ${error ? 'is-error' : ''}`}>
+                  <input
+                    ref={(el) => { boxesRef.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\\d*"
+                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                    className="otp-input"
+                    value={d}
+                    onChange={(e) => onBoxChange(i, e.target.value)}
+                    onKeyDown={(e) => onKeyDown(i, e)}
+                    onFocus={(e) => { e.currentTarget.select(); if (!reduceMotion) e.currentTarget.scrollIntoView({ block: 'center', behavior: 'auto' }); }}
+                    aria-label={`Digit ${i + 1}`}
+                    aria-invalid={!!error}
+                    maxLength={1}
+                  />
+                </div>
+              ))}
+              {isVerifying && (
+                <div className="otp-inline-status" aria-hidden="true">
+                  <div className="loading-spinner" />
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        <div className="mt-8" role="alert" aria-live="polite">
+        <div id="otp-status" className="mt-8" role="alert" aria-live="polite">
           {error ? (
             <div className="text-danger small">{error}</div>
+          ) : autoFillNotice ? (
+            <div className="text-danger small">Couldn’t detect your code. Please type it manually.</div>
           ) : resendStatus === 'sent' ? (
             <div className="text-success small">Code sent!</div>
           ) : null}
