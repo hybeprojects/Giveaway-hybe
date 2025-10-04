@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getFunctionUrl } from '../utils/functionsApi';
 
 export default function RouteLoader() {
   const location = useLocation();
@@ -52,7 +53,9 @@ export default function RouteLoader() {
     const tryPing = async (): Promise<boolean> => {
       const ts = Date.now();
       const cacheBuster = `cb=${ts}`;
+      const fnGetEvents = getFunctionUrl('get-events');
       const candidates = [
+        `${fnGetEvents}?${cacheBuster}`,
         `/.netlify/functions/get-events?${cacheBuster}`,
         `/manifest.webmanifest?${cacheBuster}`,
         `/hybe-logo.svg?${cacheBuster}`,
