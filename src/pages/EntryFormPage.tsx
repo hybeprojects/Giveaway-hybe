@@ -5,7 +5,6 @@ import 'react-phone-number-input/style.css';
 import '../styles/EntryForm.css';
 import Navbar from '../sections/Navbar';
 import Footer from '../sections/Footer';
-import { getFunctionUrl } from '../utils/functionsApi';
 
 // HYBE hierarchy: Branch -> Group -> Artists
 const HYBE_STRUCTURE: Record<string, { label: string; groups: Record<string, { label: string; artists: string[] }> }> = {
@@ -267,27 +266,6 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>): Promise<{ ok: boolean; error?: string }> {
     try {
-      const submitUrl = getFunctionUrl('submit-entry');
-      const apiRes = await safeFetch(submitUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (apiRes) {
-        if (apiRes.ok) {
-          window.location.href = '/success.html';
-          return { ok: true };
-        }
-        try {
-          const errJson = await apiRes.json();
-          const msg = (errJson && (errJson.error || errJson.message)) ? String(errJson.error || errJson.message) : '';
-          if (msg) {
-            console.warn('[submitEntryToNetlify] Function call failed, falling back to Netlify Forms:', msg);
-          }
-        } catch {}
-      }
-
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
       const formRes = await safeFetch('/', {
         method: 'POST',
@@ -298,7 +276,6 @@ const EntryFormPage: React.FC = () => {
         window.location.href = '/success.html';
         return { ok: true };
       }
-
       return { ok: false, error: 'Form submit failed. Please try again.' };
     } catch (err) {
       console.error('Submission Error:', err);
