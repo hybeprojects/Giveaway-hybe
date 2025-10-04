@@ -53,7 +53,6 @@ export default function RouteLoader() {
       const ts = Date.now();
       const cacheBuster = `cb=${ts}`;
       const candidates = [
-        `/.netlify/functions/get-me?${cacheBuster}`,
         `/.netlify/functions/get-events?${cacheBuster}`,
         `/manifest.webmanifest?${cacheBuster}`,
         `/hybe-logo.svg?${cacheBuster}`,
