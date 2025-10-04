@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hybe-giveaway-v1';
+const CACHE_NAME = 'hybe-giveaway-v2';
 const ASSETS = [
   '/',
   '/manifest.webmanifest',
