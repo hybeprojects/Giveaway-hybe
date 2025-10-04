@@ -282,7 +282,9 @@ const EntryFormPage: React.FC = () => {
         try {
           const errJson = await apiRes.json();
           const msg = (errJson && (errJson.error || errJson.message)) ? String(errJson.error || errJson.message) : '';
-          if (msg) return { ok: false, error: msg };
+          if (msg) {
+            console.warn('[submitEntryToNetlify] Function call failed, falling back to Netlify Forms:', msg);
+          }
         } catch {}
       }
 
