@@ -28,25 +28,31 @@ export default function RouteLoader() {
 
     const abortableFetch = (url: string, opts: RequestInit = {}, ms = 2500): Promise<Response | null> => {
       return new Promise((resolve) => {
-        try {
-          const controller = new AbortController();
-          const id = window.setTimeout(() => {
-            try { controller.abort(); } catch (e) { /* swallow */ }
-          }, ms);
-          // ensure signal is used and not overridden
-          const merged = { ...opts, signal: controller.signal } as RequestInit;
-          // Use then/catch instead of async/await to avoid unhandled rejections
-          fetch(url, merged).then((res) => {
-            window.clearTimeout(id);
+        (async () => {
+          let controller: AbortController | null = null;
+          let id: number | null = null;
+          try {
+            controller = new AbortController();
+            id = window.setTimeout(() => {
+              try { controller?.abort(); } catch (e) { /* swallow */ }
+            }, ms);
+
+            // ensure signal is used and not overridden
+            const merged = { ...opts, signal: controller.signal } as RequestInit;
+
+            // Use async/await so we can catch AbortError explicitly and always clear the timer
+            const res = await fetch(url, merged);
+            if (id) window.clearTimeout(id);
             resolve(res);
-          }).catch((err) => {
-            window.clearTimeout(id);
+          } catch (err: any) {
+            // If abort triggered or any network error, resolve null instead of throwing
+            try { if (id) window.clearTimeout(id); } catch {}
             resolve(null);
-          });
-        } catch (err) {
-          // Defensive: any sync error should not break the loader
-          resolve(null);
-        }
+          } finally {
+            // Best-effort cleanup
+            try { if (controller) {/* nothing to do */} } catch {}
+          }
+        })();
       });
     };
 
