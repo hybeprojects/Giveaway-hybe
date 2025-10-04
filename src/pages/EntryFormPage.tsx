@@ -318,6 +318,30 @@ const EntryFormPage: React.FC = () => {
 
   async function submitEntryToNetlify(payload: Record<string, any>) {
     try {
+      const meta = (import.meta as any).env || {};
+      const FUNCTIONS_BASE: string = (meta.VITE_FUNCTIONS_BASE as string) || '/.netlify/functions';
+      const sessionToken = localStorage.getItem('local_session') || '';
+
+      // If we have a local session token, submit directly to the protected serverless function
+      if (sessionToken) {
+        const endpoint = `${FUNCTIONS_BASE}/post-entry`;
+        const response = await safeFetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response || !response.ok) {
+          setSubmissionError('Form submit failed. Please try again.');
+          return;
+        }
+
+        // Function responded OK
+        window.location.href = '/success.html';
+        return;
+      }
+
+      // No session token: fallback to Netlify Forms submission (url-encoded to site root)
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
       const response = await safeFetch('/', {
         method: 'POST',
@@ -329,6 +353,7 @@ const EntryFormPage: React.FC = () => {
         setSubmissionError('Form submit failed. Please try again.');
         return;
       }
+
       window.location.href = '/success.html';
     } catch (err) {
       console.error('Submission Error:', err);
