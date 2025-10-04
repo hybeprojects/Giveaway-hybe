@@ -186,8 +186,11 @@
 .otp-cell.is-success .otp-input { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40,167,69,0.25); }
 .otp-inline-status { position: absolute; right: -36px; display: flex; align-items: center; justify-content: center; }
 .otp-inline-status .loading-spinner { width: 20px; height: 20px; border-width: 2px; border-color: rgba(0,0,0,0.15); border-top-color: #000; }
-.otp-check { width: 20px; height: 20px; border-radius: 50%; background: #28a745; position: relative; }
+.otp-check { width: 20px; height: 20px; border-radius: 50%; background: #28a745; position: relative; transform: scale(1); opacity: 1; }
 .otp-check::after { content: ''; position: absolute; left: 6px; top: 3px; width: 6px; height: 10px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+.otp-check.animated { animation: otp-pop 400ms ease-out forwards; }
+@keyframes otp-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .otp-check.animated { animation: none; } }
 
 /* Small spacing helper */
 .mt-14 { margin-top: 14px; }
