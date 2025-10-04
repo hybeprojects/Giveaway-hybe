@@ -78,7 +78,6 @@ const fallbackCountries: { code: string; name: string }[] = [
 ];
 
 const EntryFormPage: React.FC = () => {
-  const navigate = useNavigate();
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [sessionEmail, setSessionEmail] = useState<string>('');
   const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
