@@ -1,7 +1,4 @@
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import path from 'path';
 
 export function validateEmailEnvOrThrow() {
   const host = process.env.SMTP_HOST || '';
@@ -50,36 +47,6 @@ export function renderEmail(origin, heading, innerHtml) {
   </div>
 </body>
 </html>`;
-}
-
-function readOtpTemplate() {
-  try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const tplPath = path.resolve(__dirname, '../templates/otp.html');
-    return fs.readFileSync(tplPath, 'utf8');
-  } catch {
-    return null;
-  }
-}
-
-export function renderOtpEmail({ origin, code, ttl }) {
-  const subject = 'Your HYBE Giveaway verification code';
-  const template = readOtpTemplate();
-  if (template) {
-    const html = template
-      .replace(/{{\s*ttl\s*}}/g, String(ttl))
-      .replace(/{{\s*\.Token\s*}}/g, String(code));
-    const text = `Your HYBE Giveaway verification code is ${code}. It expires in ${ttl} minutes.`;
-    return { subject, text, html };
-  }
-  const html = renderEmail(origin, 'Confirm Your Giveaway Entry', `
-    <p>Use the one-time password below to verify your email:</p>
-    <div class="code">${code}</div>
-    <p>This code expires in <strong>${ttl} minutes</strong>.</p>
-  `);
-  const text = `Your HYBE Giveaway verification code is ${code}. It expires in ${ttl} minutes.`;
-  return { subject, text, html };
 }
 
 export async function sendEmail(event, { to, subject, text, html }) {
