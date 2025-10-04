@@ -217,16 +217,6 @@ const EntryFormPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [setValue]);
 
-  // Auto-refresh once when route loader hides
-  useEffect(() => {
-    const onHidden = () => {
-      if (sessionStorage.getItem('entry_auto_refreshed')) return;
-      sessionStorage.setItem('entry_auto_refreshed', '1');
-      setTimeout(() => { window.location.reload(); }, 0);
-    };
-    window.addEventListener('route-loader-hidden', onHidden);
-    return () => { window.removeEventListener('route-loader-hidden', onHidden); };
-  }, []);
 
   // Keep phone input formatting in sync
   useEffect(() => {
@@ -275,7 +265,7 @@ const EntryFormPage: React.FC = () => {
       .join('&');
   }
 
-  async function submitEntryToNetlify(payload: Record<string, any>) {
+  async function submitEntryToNetlify(payload: Record<string, any>): Promise<{ ok: boolean; error?: string }> {
     try {
       const submitUrl = getFunctionUrl('submit-entry');
       const apiRes = await safeFetch(submitUrl, {
@@ -283,9 +273,17 @@ const EntryFormPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (apiRes && apiRes.ok) {
-        window.location.href = '/success.html';
-        return;
+
+      if (apiRes) {
+        if (apiRes.ok) {
+          window.location.href = '/success.html';
+          return { ok: true };
+        }
+        try {
+          const errJson = await apiRes.json();
+          const msg = (errJson && (errJson.error || errJson.message)) ? String(errJson.error || errJson.message) : '';
+          if (msg) return { ok: false, error: msg };
+        } catch {}
       }
 
       const body = toUrlEncoded({ 'form-name': 'entry', ...payload });
@@ -296,13 +294,13 @@ const EntryFormPage: React.FC = () => {
       });
       if (formRes && formRes.ok) {
         window.location.href = '/success.html';
-        return;
+        return { ok: true };
       }
 
-      setSubmissionError('Form submit failed. Please try again.');
+      return { ok: false, error: 'Form submit failed. Please try again.' };
     } catch (err) {
       console.error('Submission Error:', err);
-      setSubmissionError('A network error occurred. Please try again later.');
+      return { ok: false, error: 'A network error occurred. Please try again later.' };
     }
   }
 
@@ -339,10 +337,12 @@ const EntryFormPage: React.FC = () => {
     setIsConfirming(true);
     setPreviewError(null);
     try {
-      await submitEntryToNetlify(pendingPayload);
-      setPreviewOpen(false);
-    } catch (e: any) {
-      setPreviewError('Failed to submit. Please try again.');
+      const res = await submitEntryToNetlify(pendingPayload);
+      if (!res.ok) {
+        setPreviewError(res.error || 'Failed to submit. Please try again.');
+      } else {
+        setPreviewOpen(false);
+      }
     } finally {
       setIsConfirming(false);
     }
