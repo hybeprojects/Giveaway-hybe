@@ -43,9 +43,9 @@ export default function GiveawayDetails() {
             <p>This is your shot to win big and experience something extraordinary! Whether it’s cruising in a sleek Tesla, securing a crypto fortune, or rubbing shoulders with VIPs, these prizes are designed to make dreams come true. Don’t miss out.</p>
           </section>
 
-          <section className="mt-4" aria-label="Rules & Details">
-            <h2 className="h3">Rules &amp; Details</h2>
-            <ul className="list">
+          <section aria-label="Rules & Details">
+            <h2>Rules &amp; Details</h2>
+            <ul>
               <li>One entry per person.</li>
               <li>Must be 18 or older.</li>
               <li>Winners will be announced via email.</li>
