@@ -12,6 +12,8 @@ export default function Footer() {
           </div>
           <div className="footer-links">
             <nav className="footer-nav">
+              <Link className="footer-link" to="/giveaway">Giveaway Details</Link>
+              <Link className="footer-link" to="/rules">Rules</Link>
               <a className="footer-link" href="https://www.hybecorp.com" target="_blank" rel="noopener noreferrer">HYBE Official</a>
               <a className="footer-link" href="https://weverse.io/" target="_blank" rel="noopener noreferrer">Weverse</a>
               <a className="footer-link" href="https://www.youtube.com/@HYBEOFFICIAL" target="_blank" rel="noopener noreferrer">YouTube</a>
