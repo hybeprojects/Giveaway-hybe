@@ -38,8 +38,8 @@ export default function GiveawayDetails() {
             </div>
           </section>
 
-          <section className="mt-4" aria-label="Why Enter">
-            <h2 className="h3">Why You Should Enter</h2>
+          <section aria-label="Why Enter">
+            <h2>Why You Should Enter</h2>
             <p>This is your shot to win big and experience something extraordinary! Whether it’s cruising in a sleek Tesla, securing a crypto fortune, or rubbing shoulders with VIPs, these prizes are designed to make dreams come true. Don’t miss out.</p>
           </section>
 
