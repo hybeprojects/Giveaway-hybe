@@ -6,7 +6,7 @@ export default function Rules() {
     <>
       <Navbar />
       <main className="section" aria-label="Giveaway Rules">
-        <div className="container">
+        <div className="container page-content">
           <h1 className="section-title">Giveaway Rules &amp; Details</h1>
           <p className="section-subtitle">Please review the rules to ensure a fair and transparent experience for everyone.</p>
 
