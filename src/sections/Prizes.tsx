@@ -93,6 +93,19 @@ function PrizeHighlights() {
   );
 }
 
+function PrizesUpForGrabs() {
+  return (
+    <div className="gamify-box" style={{marginBottom: '1.25rem'}} aria-label="Prizes Up for Grabs">
+      <strong style={{display:'block', marginBottom: 8}}>Prizes Up for Grabs</strong>
+      <ul style={{margin: 0, paddingLeft: '1.1rem', lineHeight: 1.6}}>
+        <li>🚗 A Brand New Tesla Model 3 — drive into the future with style and sustainability.</li>
+        <li>💸 $700,000 in Cryptocurrency — a massive boost to your financial freedom.</li>
+        <li>🎟 An Exclusive VIP Meet &amp; Greet — all expenses paid with your favorite HYBE artist.</li>
+      </ul>
+    </div>
+  );
+}
+
 export default function Prizes() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const prizes: Prize[] = [
@@ -132,6 +145,7 @@ export default function Prizes() {
         <h2 className="section-title">Exclusive Prizes</h2>
         <p className="section-subtitle">A look at what you can win.</p>
 
+        <PrizesUpForGrabs />
         <PrizeHighlights />
 
         <div className="prize-grid" ref={scrollerRef}>
