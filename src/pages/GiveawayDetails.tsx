@@ -11,9 +11,9 @@ export default function GiveawayDetails() {
           <h1 className="section-title">Get Ready for the Giveaway of a Lifetime</h1>
           <p className="section-subtitle">We’re thrilled to offer you the opportunity to enter our exclusive giveaway for a chance to win life‑changing prizes!</p>
 
-          <section className="mt-4" aria-label="Prizes">
-            <h2 className="h3">Prizes Up for Grabs</h2>
-            <ul className="list">
+          <section aria-label="Prizes">
+            <h2>Prizes Up for Grabs</h2>
+            <ul>
               <li>
                 <strong>🚗 A Brand New Tesla Model 3</strong> — Drive into the future with style and sustainability!
               </li>
