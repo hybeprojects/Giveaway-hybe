@@ -59,7 +59,6 @@ export default function GiveawayDetails() {
             </div>
           </section>
 
-          <p>Best regards,<br />HYBE CORP LABEL</p>
         </div>
       </main>
       <Footer />
