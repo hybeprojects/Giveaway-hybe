@@ -40,8 +40,8 @@ export default function Hero() {
       </video>
       <div className="hero-overlay"></div>
       <div className="hero-content container">
-        <h1 className="hero-title">The Ultimate HYBE Giveaway</h1>
-        <p className="hero-subtitle">Win a Tesla, $700k in Crypto, and a VIP HYBE Experience!</p>
+        <h1 className="hero-title">Giveaway of a Lifetime</h1>
+        <p className="hero-subtitle">Enter for a Tesla Model 3, $700,000 in Crypto, and an Exclusive VIP Meet &amp; Greet.</p>
         <div className="countdown-container">
           <p className="countdown-label">Entries close in:</p>
           <Countdown target={target} />

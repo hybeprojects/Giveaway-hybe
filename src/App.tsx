@@ -14,6 +14,8 @@ const Trust = lazy(() => import('./sections/Trust'));
 const LiveUpdates = lazy(() => import('./sections/LiveUpdates'));
 const Footer = lazy(() => import('./sections/Footer'));
 const EntryFormPage = lazy(() => import('./pages/EntryFormPage'));
+const GiveawayDetails = lazy(() => import('./pages/GiveawayDetails'));
+const RulesPage = lazy(() => import('./pages/Rules'));
 
 function Landing() {
   const [showOnboard, setShowOnboard] = useState(true);
@@ -42,6 +44,8 @@ function Landing() {
       import('./sections/LiveUpdates');
       import('./sections/Footer');
       import('./pages/EntryFormPage');
+      import('./pages/GiveawayDetails');
+      import('./pages/Rules');
     });
     return () => cancel(id);
   }, []);
@@ -95,6 +99,8 @@ export default function App() {
       <Routes location={location}>
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/entry" element={<PageTransition><Suspense fallback={null}><EntryFormPage /></Suspense></PageTransition>} />
+        <Route path="/giveaway" element={<PageTransition><Suspense fallback={null}><GiveawayDetails /></Suspense></PageTransition>} />
+        <Route path="/rules" element={<PageTransition><Suspense fallback={null}><RulesPage /></Suspense></PageTransition>} />
         <Route path="*" element={<PageTransition><Landing /></PageTransition>} />
       </Routes>
     </>
