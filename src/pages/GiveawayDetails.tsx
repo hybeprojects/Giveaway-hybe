@@ -32,7 +32,7 @@ export default function GiveawayDetails() {
               <li>Click the button below to open the giveaway entry form.</li>
               <li>Complete the simple form with your details.</li>
             </ol>
-            <div className="cta-row mt-3">
+            <div className="cta-row">
               <Link className="button-primary btn-lg" to="/entry" aria-label="Enter the Giveaway Now">Enter the Giveaway Now</Link>
               <a className="button-secondary btn-lg" href="#prizes">Explore Prizes</a>
             </div>
