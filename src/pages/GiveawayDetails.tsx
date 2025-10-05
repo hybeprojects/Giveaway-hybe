@@ -26,9 +26,9 @@ export default function GiveawayDetails() {
             </ul>
           </section>
 
-          <section className="mt-4" aria-label="How to Enter">
-            <h2 className="h3">How to Enter</h2>
-            <ol className="list">
+          <section aria-label="How to Enter">
+            <h2>How to Enter</h2>
+            <ol>
               <li>Click the button below to open the giveaway entry form.</li>
               <li>Complete the simple form with your details.</li>
             </ol>
