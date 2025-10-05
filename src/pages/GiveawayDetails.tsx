@@ -53,7 +53,7 @@ export default function GiveawayDetails() {
             </ul>
           </section>
 
-          <section className="mt-5" aria-label="Final CTA">
+          <section aria-label="Final CTA">
             <div className="cta-row">
               <Link className="button-primary btn-lg" to="/entry">Enter Now</Link>
             </div>
