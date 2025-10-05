@@ -7,7 +7,7 @@ export default function GiveawayDetails() {
     <>
       <Navbar />
       <main className="section" aria-label="Giveaway Details">
-        <div className="container">
+        <div className="container page-content">
           <h1 className="section-title">Get Ready for the Giveaway of a Lifetime</h1>
           <p className="section-subtitle">We’re thrilled to offer you the opportunity to enter our exclusive giveaway for a chance to win life‑changing prizes!</p>
 
