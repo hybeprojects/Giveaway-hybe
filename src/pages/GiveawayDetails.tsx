@@ -59,7 +59,7 @@ export default function GiveawayDetails() {
             </div>
           </section>
 
-          <p className="mt-5">Best regards,<br />HYBE CORP LABEL</p>
+          <p>Best regards,<br />HYBE CORP LABEL</p>
         </div>
       </main>
       <Footer />
