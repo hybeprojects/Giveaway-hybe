@@ -155,21 +155,11 @@
   color: #212529;
 }
 
-/* Primary button styling (scoped to entry page to avoid global changes) */
+/* Primary button styling (scoped tweaks only; colors come from global.css) */
 .entry-form-page .button-primary {
-  padding: 0.8rem 1.5rem;
+  padding: 0.9rem 1.6rem;
   font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.button-primary:hover:not(:disabled) {
-  background-color: #7a1fca;
-}
-
-.button-primary:disabled {
-  background-color: #555;
-  cursor: not-allowed;
+  font-weight: 700;
 }
 
 

@@ -69,10 +69,17 @@ img, video {
 .sticky-nav {
   position: sticky;
   top: 0;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   z-index: 100;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.sticky-nav.scrolled {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-bottom-color: rgba(0,0,0,0.1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.06);
 }
 
 .navbar {
@@ -120,7 +127,7 @@ img, video {
   transition: color 0.3s ease;
 }
 
-.nav-button:hover {
+.nav-button:hover, .nav-button.active {
   color: var(--hybe-yellow);
 }
 
@@ -153,7 +160,11 @@ img, video {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background:
+    radial-gradient(1200px 400px at 20% 10%, rgba(245,255,0,0.15), transparent 60%),
+    radial-gradient(800px 300px at 80% 0%, rgba(10,132,255,0.12), transparent 55%),
+    linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.7)),
+    rgba(0, 0, 0, 0.5);
   z-index: -1;
 }
 
@@ -582,9 +593,77 @@ html { box-sizing: border-box; }
 /* Page Transition */
 .route-view {
   opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+  transform: translateY(8px) scale(0.985);
+  transition: opacity 280ms ease, transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .route-view.enter {
   opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-view { transition: none; transform: none; }
+}
+
+/* Enhanced Prizes aesthetics */
+.prizes-section {
+  position: relative;
+  background:
+    radial-gradient(800px 300px at 10% 0%, rgba(245,255,0,0.08), transparent 60%),
+    radial-gradient(800px 300px at 90% 0%, rgba(10,132,255,0.07), transparent 60%),
+    #f7f7f8;
+}
+
+.prize-highlights { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin: 0 0 1.5rem; }
+.prize-chip {
+  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.85rem;
+  border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8); backdrop-filter: blur(6px);
+}
+
+/* Grid transforms into horizontal carousel on small screens via responsive.css overrides */
+.prize-grid { perspective: 1000px; }
+
+.prize-card.prize-tilt {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 300ms cubic-bezier(.2,.8,.2,1), box-shadow 300ms ease, border-color 300ms ease;
+  will-change: transform;
+  text-align: left;
+  background: linear-gradient(180deg, #ffffff, #fafafa);
+}
+.prize-card.prize-tilt.in { box-shadow: 0 20px 60px rgba(0,0,0,0.10); }
+.prize-card.prize-tilt::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(600px 200px at var(--mx, 50%) var(--my, 50%), rgba(245,255,0,0.15), transparent 40%);
+  opacity: 0; transition: opacity 200ms ease; pointer-events: none;
+}
+.prize-card.prize-tilt:hover::before { opacity: 1; }
+
+.prize-media { height: 160px; background:
+  radial-gradient(400px 140px at 20% 30%, rgba(245,255,0,0.35), transparent 60%),
+  radial-gradient(360px 140px at 80% 10%, rgba(10,132,255,0.35), transparent 60%),
+  linear-gradient(135deg, #f7f7f8, #ededf0);
+}
+
+.prize-info { padding: 1.25rem 1.5rem 1.5rem; }
+.prize-topline { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.25rem; }
+.prize-tier { color: var(--hybe-yellow); letter-spacing: 0.06em; }
+.prize-value { font-weight: 700; color: #111; border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; padding: 0.25rem 0.6rem; background: #fff; }
+.prize-title { margin: 0.35rem 0 0.35rem; font-size: 1.4rem; }
+.prize-detail { color: #555; }
+.prize-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.prize-cta { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+
+/* Mobile arrows show only when overflow exists */
+.prize-arrows { display: none; position: relative; margin-top: 1rem; justify-content: center; gap: 0.5rem; }
+.prize-arrows .arrow { width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.15); background: #fff; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .prize-arrows { display: flex; }
 }
