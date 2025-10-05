@@ -77,10 +77,17 @@
     flex-direction: column;
   }
 
-  /* Prizes Section */
+  /* Prizes Section - horizontal carousel on mobile */
   .prize-grid {
-    grid-template-columns: 1fr;
+    grid-auto-flow: column;
+    grid-auto-columns: 85%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
   }
+  .prize-card { scroll-snap-align: start; }
 
   /* VIP Section */
   .vip-content {
