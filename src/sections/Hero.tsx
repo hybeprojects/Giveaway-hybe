@@ -6,8 +6,7 @@ import { getDisplayDeadline } from '../utils/timing';
 const VIDEO_URL = "https://assets.mixkit.co/videos/preview/mixkit-traveling-through-a-tunnel-of-black-cubes-in-3d-31497-large.mp4";
 
 export default function Hero() {
-  const target = getGiveawayDeadline();
-  const adjustedTarget = new Date(target.getTime() - 48 * 60 * 60 * 1000);
+  const target = getDisplayDeadline();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduceMotion = useMemo(() => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
@@ -45,7 +44,7 @@ export default function Hero() {
         <p className="hero-subtitle">Enter for a Tesla Model 3, $700,000 in Crypto, and an Exclusive VIP Meet &amp; Greet.</p>
         <div className="countdown-container">
           <p className="countdown-label">Entries close in:</p>
-          <Countdown target={adjustedTarget} />
+          <Countdown target={target} />
         </div>
         <div className="cta-row">
           <Link className="button-primary btn-lg" to="/entry">Enter the Giveaway</Link>
