@@ -51,3 +51,13 @@ export function getGiveawayDeadline(): Date {
 export function getGiveawayDeadlineStamp(): number {
   return getGiveawayDeadline().getTime();
 }
+
+export const DISPLAY_OFFSET_MS = 48 * 60 * 60 * 1000;
+
+export function getDisplayDeadline(): Date {
+  return new Date(getGiveawayDeadline().getTime() - DISPLAY_OFFSET_MS);
+}
+
+export function getDisplayDeadlineStamp(): number {
+  return getDisplayDeadline().getTime();
+}

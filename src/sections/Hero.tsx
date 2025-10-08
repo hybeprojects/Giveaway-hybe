@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useRef } from 'react';
 import Countdown from '../components/Countdown';
-import { getGiveawayDeadline } from '../utils/timing';
+import { getDisplayDeadline } from '../utils/timing';
 
 const VIDEO_URL = "https://assets.mixkit.co/videos/preview/mixkit-traveling-through-a-tunnel-of-black-cubes-in-3d-31497-large.mp4";
 
