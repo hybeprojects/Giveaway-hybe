@@ -47,8 +47,5 @@
   "devDependencies": {
     "netlify-cli": "^23.8.1",
     "esbuild": "^0.18.17"
-  },
-  "scripts": {
-    "build:functions": "node ./scripts/build-functions.mjs"
   }
 }
