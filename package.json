@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build",
+    "build": "npm run build:functions && ./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build",
+    "build:functions": "node ./scripts/build-functions.mjs",
     "preview": "vite preview --port 3000",
-    "start": "vite preview --port 3000"
+    "start": "vite preview --port 3000",
+    "postinstall": "cd netlify && npm ci"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -43,6 +45,7 @@
     "node": ">=18.17.0"
   },
   "devDependencies": {
-    "netlify-cli": "^23.8.1"
+    "netlify-cli": "^23.8.1",
+    "esbuild": "^0.18.17"
   }
 }
