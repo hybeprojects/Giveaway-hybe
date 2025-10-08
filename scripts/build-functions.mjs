@@ -1,5 +1,4 @@
 import { build as esbuildBuild } from 'esbuild';
-import { build as esbuildBuild } from 'esbuild';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
