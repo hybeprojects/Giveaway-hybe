@@ -1,5 +1,4 @@
-import { build } from 'esbuild';
-import { build } from 'esbuild';
+import { build as esbuildBuild } from 'esbuild';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -33,7 +32,7 @@ async function buildAll() {
     const name = rel.replace(/[/\\]/g, '-').replace(/\.[^/.]+$/, '') + '.js';
     const outfile = path.join(OUT_DIR, name);
     console.log('Building function', rel, '->', path.relative(process.cwd(), outfile));
-    await build({
+    await esbuildBuild({
       entryPoints: [src],
       bundle: true,
       platform: 'node',
