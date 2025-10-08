@@ -1,32 +1,38 @@
 import { build } from 'esbuild';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import glob from 'glob';
+const { build } = await import('esbuild');
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 const FUNCTIONS_SRC = path.join(process.cwd(), 'netlify', 'functions');
 const OUT_DIR = path.join(process.cwd(), 'netlify', 'dist-functions');
+const EXT = ['.js', '.ts', '.mjs', '.jsx', '.tsx'];
 
 async function ensureOutDir() {
   await fs.mkdir(OUT_DIR, { recursive: true });
 }
 
-function getEntries() {
-  return new Promise((resolve, reject) => {
-    glob('**/*.{js,ts,mjs,jsx,tsx}', { cwd: FUNCTIONS_SRC, nodir: true }, (err, files) => {
-      if (err) return reject(err);
-      resolve(files);
-    });
-  });
+async function walk(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      files.push(...await walk(full));
+    } else if (e.isFile()) {
+      if (EXT.includes(path.extname(e.name))) files.push(full);
+    }
+  }
+  return files;
 }
 
 async function buildAll() {
   await ensureOutDir();
-  const entries = await getEntries();
-  // For each file, build to OUT_DIR keeping filename but flattening subdirs
-  await Promise.all(entries.map(async (rel) => {
-    const src = path.join(FUNCTIONS_SRC, rel);
-    // name output file by replacing path separators with - and ensure .js extension
-    const name = rel.replace(/\//g, '-').replace(/\.[^/.]+$/, '') + '.js';
+  const all = await walk(FUNCTIONS_SRC);
+  await Promise.all(all.map(async (src) => {
+    const rel = path.relative(FUNCTIONS_SRC, src);
+    const name = rel.replace(/[/\\]/g, '-').replace(/\.[^/.]+$/, '') + '.js';
     const outfile = path.join(OUT_DIR, name);
     console.log('Building function', rel, '->', path.relative(process.cwd(), outfile));
     await build({
@@ -37,10 +43,9 @@ async function buildAll() {
       format: 'esm',
       outfile,
       sourcemap: false,
-      external: [],
     });
   }));
-  console.log('Built', entries.length, 'functions to', OUT_DIR);
+  console.log('Built', all.length, 'functions to', OUT_DIR);
 }
 
 buildAll().catch((err) => {
