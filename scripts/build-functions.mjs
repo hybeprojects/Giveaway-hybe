@@ -29,7 +29,10 @@ async function buildAll() {
   const all = await walk(FUNCTIONS_SRC);
   await Promise.all(all.map(async (src) => {
     const rel = path.relative(FUNCTIONS_SRC, src);
-    const name = rel.replace(/[/\\]/g, '-').replace(/\.[^/.]+$/, '') + '.js';
+    // sanitize name: replace path separators with '-', strip extension, and replace any disallowed chars with '-'
+    const base = rel.replace(/[/\\]/g, '-').replace(/\.[^/.]+$/, '');
+    const safe = base.replace(/[^a-zA-Z0-9-_]/g, '-');
+    const name = safe + '.js';
     const outfile = path.join(OUT_DIR, name);
     console.log('Building function', rel, '->', path.relative(process.cwd(), outfile));
     await esbuildBuild({
