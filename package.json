@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "./node_modules/.bin/tsc -b && ./node_modules/.bin/vite build",
     "preview": "vite preview --port 3000",
-    "start": "vite preview --port 3000"
+    "start": "vite preview --port 3000",
+    "postinstall": "cd netlify && npm ci"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
