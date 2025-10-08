@@ -1,7 +1,5 @@
 import { build } from 'esbuild';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-const { build } = await import('esbuild');
+import { build } from 'esbuild';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
